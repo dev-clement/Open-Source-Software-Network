@@ -1,0 +1,29 @@
+[workspace]
+name = "ossn-backend"
+version = "0.1.0"
+description = "FastAPI backend for the OSS Network"
+authors = ["Clement FRANCOIS <clement.francois.developpeur@outlook.com>"]
+channels = ["conda-forge"]
+platforms = ["linux-64", "win-64", "osx-64", "osx-arm64"]
+
+[dependencies]
+python = "3.12.*"
+fastapi = ">=0.110.0"
+uvicorn = ">=0.29.0"
+# Using SQLModel, it simplifies FastAPI + SQLAlchemy
+sqlmodel = ">=0.0.16"
+# Drivers for PostgreSQL
+psycopg2-binary = ">=2.9.9"
+asyncpg = ">=0.29.0"
+python-dotenv = ">=1.0.1"
+
+[tasks]
+# Task to start the development server with hot reload
+start = 'uvicorn main:app --reload --host 0.0.0.0 --port 8000'
+# Task to run test once you add them
+test = 'pytest'
+# Task to check linting
+lint = 'ruff check .'
+
+[environments]
+default = { solve-group = "default" }
