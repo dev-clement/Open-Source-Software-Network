@@ -1,0 +1,53 @@
+# ==========================================
+# OSS Network (OSSN) Master .gitignore
+# ==========================================
+
+# --- General / OS ---
+.DS_Store
+*.log
+.vscode/
+.idea/
+*.swp
+
+
+# --- Environment & Secrets (CRITICAL) ---
+# Never commit your credentials or DB passwords!
+.env
+.env.*
+!.env.example
+secrets.json
+
+# --- Infrastructure & Database ---
+# Local database storage for PostgreSQL
+pgdata/
+docker_volumes/
+
+# --- Backend (FastAPI / Python) ---
+backend/__pycache__/
+backend/*.py[cod]
+backend/*$py.class
+backend/.pytest_cache/
+backend/.venv/
+backend/dist/
+backend/build/
+# If you use Pixi for backend management
+backend/.pixi/
+
+# --- Frontend (Angular) ---
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/coverage/
+frontend/npm-debug.log*
+frontend/yarn-error.log*
+frontend/.editorconfig
+# If you use Pixi for frontend management
+frontend/.pixi/
+
+# --- Management Tools (Pixi) ---
+# Ignore the environment prefix created by Pixi
+.pixi/
+
+# --- Docker ---
+# Ignore generated docker-compose overrides if necessary
+docker-compose.override.yml

@@ -1,0 +1,53 @@
+= OSS Network (OSSN)
+:toc: left
+:icons: font
+:revnumber: 0.1
+:revdate: 2026-04-03
+
+== 1. Project Overview
+OSS Network is a specialized social platform designed to bridge the gap between open-source project maintainers and developers looking for meaningful contributions[cite: 3]. Unlike generic code hosting platforms, it focuses on the social and professional connection side of open source, helping developers build a "Contribution Portfolio" and helping maintainers find reliable help[cite: 4].
+
+== 2. Core Pillars
+The application is built around three primary functional requirements:
+
+* [cite_start]**Authentication & Identity**: Support for email/password and future GitHub OAuth2 integration[cite: 12, 13].
+* **Project Discovery**: A searchable directory of projects and a dashboard for "Help Wanted" status[cite: 17, 18].
+* [cite_start]**Contribution Management**: A formal "Ask to Contribute" pipeline tracking states from *Interested* to *Merged*[cite: 21, 22].
+
+== 3. Technical Stack
+The project utilizes a modern, containerized architecture[cite: 25]:
+
+[cols="1,2,2", options="header"]
+|===
+| Tier | Technology | Role
+| **Frontend** | Angular (LTS) | Enterprise-grade SPA for the social interface.
+| **Backend** | Python 3.12 + FastAPI | High-performance asynchronous REST API.
+| **Database** | PostgreSQL 16 | [cite_start]Relational storage for users, projects, and social links[cite: 26].
+| **Management**| Pixi | Modern dependency and environment management[cite: 26].
+| **Infrastructure**| Docker Compose | Orchestration of frontend, backend, and DB services[cite: 26].
+| **Proxy** | Nginx | [cite_start]Traffic routing for /api and / paths[cite: 26].
+|===
+
+== 4. Data Model
+The initial phase implements the following models[cite: 28]:
+
+1.  [cite_start]**User Model**: Extended with `github_handle` and `bio`[cite: 29].
+2.  **Project Model**: Stores title, description, repository_url, and language tags[cite: 30].
+3.  [cite_start]**Contribution Model**: A many-to-many relationship linking Users to Projects with a status field[cite: 31].
+
+== 5. Development Roadmap
+
+=== Phase 1: Infrastructure
+* [cite_start][x] Initialize repository with `docker-compose.yaml` and `pixi.toml`[cite: 34].
+* [cite_start][ ] Establish PostgreSQL connection and Nginx routing[cite: 35, 36].
+
+=== Phase 2: Backend Core
+* [cite_start][ ] Implement FastAPI schemas and models (User, Project, Contribution)[cite: 38].
+* [cite_start][ ] Build API endpoints for Project Listing and Authentication[cite: 39].
+
+=== Phase 3: Frontend Implementation
+* [cite_start][ ] Build Angular dashboard and Discovery UI[cite: 41, 42].
+* [cite_start][ ] Implement the "Request to Contribute" flow[cite: 42].
+
+== Acknowledgments
+This project concept was originally sparked by a LinkedIn colleague and Prime Architect[cite: 6]. Her vision for a more connected, architecturally sound open-source ecosystem serves as the foundation for this implementation[cite: 7].
