@@ -17,8 +17,7 @@ class User(SQLModel, table=True):
 
     id: Optional[int] = Field(
         default=None,
-        primary_key=True,
-        sa_column=Column(BigInteger, Identity(always=True)),
+        sa_column=Column(BigInteger, Identity(always=True), primary_key=True),
     )
     username: str = Field(sa_column=Column(String(255), nullable=False))
     email: str = Field(sa_column=Column(String(255), nullable=False, unique=True))
@@ -57,8 +56,7 @@ class Project(SQLModel, table=True):
 
     id: Optional[int] = Field(
         default=None,
-        primary_key=True,
-        sa_column=Column(BigInteger, Identity(always=True)),
+        sa_column=Column(BigInteger, Identity(always=True), primary_key=True),
     )
     title: str = Field(sa_column=Column(String(255), nullable=False))
     description: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
@@ -96,8 +94,7 @@ class Contribution(SQLModel, table=True):
 
     id: Optional[int] = Field(
         default=None,
-        primary_key=True,
-        sa_column=Column(BigInteger, Identity(always=True)),
+        sa_column=Column(BigInteger, Identity(always=True), primary_key=True),
     )
     fk_user_id: int = Field(
         sa_column=Column(BigInteger, ForeignKey("user.id", ondelete="CASCADE"), nullable=False),

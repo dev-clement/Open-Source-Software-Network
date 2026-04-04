@@ -1,8 +1,7 @@
-import os
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from sqlmodel import SQLModel, select
+from sqlmodel import SQLModel
 
 class DatabaseEngine:
     """
@@ -57,6 +56,3 @@ class DatabaseEngine:
         """
         async with self.async_session() as session:
             yield session
-
-# Create a global instance
-db_engine = DatabaseEngine()
