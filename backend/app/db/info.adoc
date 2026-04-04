@@ -1,0 +1,262 @@
+= Database Models Documentation
+
+== Overview
+
+This document describes the database models for the OSS Network platform, implemented using SQLModel.
+
+== What is SQLModel?
+
+SQLModel is a library that combines the best of SQLAlchemy (for database operations) and Pydantic (for data validation and serialization). It provides:
+
+* **Type-safe database models**: Define your database schema using Python type hints
+* **Automatic validation**: Pydantic validates data when creating or updating records
+* **ORM capabilities**: Full SQLAlchemy ORM functionality for complex queries
+* **FastAPI integration**: Seamless integration with FastAPI for request/response models
+
+=== Key Features
+
+* Single source of truth for database schema and API models
+* Automatic JSON serialization/deserialization
+* Type checking with mypy and IDE support
+* Relationship handling between tables
+* Migration support with Alembic
+
+== Database Schema
+
+The OSS Network platform uses PostgreSQL with three main tables:
+
+=== User Table
+
+[source,python]
+----
+class User(SQLModel, table=True):
+    __tablename__ = "user"
+----
+
+==== Fields
+
+* `id`: Auto-generated primary key (BigInteger with IDENTITY)
+* `username`: User's display name (required, VARCHAR(255))
+* `email`: Unique email address (required, VARCHAR(255))
+* `password`: Hashed password (required, VARCHAR(255))
+* `github_page`: Optional GitHub profile URL (VARCHAR(255))
+* `bio`: Optional user biography (TEXT)
+* `created_at`: Automatic timestamp when record is created
+* `updated_at`: Automatic timestamp when record is modified
+
+==== Relationships
+
+* `contributions`: One-to-many relationship with Contribution table
+
+=== Project Table
+
+[source,python]
+----
+class Project(SQLModel, table=True):
+    __tablename__ = "projects"
+----
+
+==== Fields
+
+* `id`: Auto-generated primary key (BigInteger with IDENTITY)
+* `title`: Project title (required, VARCHAR(255))
+* `description`: Optional project description (TEXT)
+* `repository_url`: Unique GitHub repository URL (required, VARCHAR(255))
+* `help_wanted`: Boolean flag indicating if project needs contributors
+* `created_at`: Automatic timestamp when record is created
+* `updated_at`: Automatic timestamp when record is modified
+
+==== Relationships
+
+* `contributions`: One-to-many relationship with Contribution table
+
+=== Contribution Table
+
+[source,python]
+----
+class Contribution(SQLModel, table=True):
+    __tablename__ = "contributions"
+----
+
+==== Fields
+
+* `id`: Auto-generated primary key (BigInteger with IDENTITY)
+* `fk_user_id`: Foreign key to User table (required, CASCADE on delete)
+* `fk_project_id`: Foreign key to Project table (required, CASCADE on delete)
+* `status`: Contribution status (VARCHAR(20), default: "interested")
+* `applied_at`: Timestamp when contribution was applied (with timezone)
+* `updated_at`: Automatic timestamp when record is modified (with timezone)
+
+==== Status Values
+
+* `interested`: User has expressed interest in contributing
+* `contributed`: User has made a contribution
+* `closed`: Contribution request has been closed
+
+==== Relationships
+
+* `user`: Many-to-one relationship with User table
+* `project`: Many-to-one relationship with Project table
+
+== Field Types and Constraints
+
+=== Primary Keys
+
+All tables use PostgreSQL's `IDENTITY` for auto-incrementing primary keys:
+
+[source,python]
+----
+id: Optional[int] = Field(
+    default=None,
+    primary_key=True,
+    sa_column=Column(BigInteger, Identity(always=True)),
+)
+----
+
+The `Optional[int]` type allows the field to be `None` when creating new records, letting the database generate the ID.
+
+=== Foreign Keys
+
+Foreign key relationships use CASCADE deletion:
+
+[source,python]
+----
+fk_user_id: int = Field(
+    sa_column=Column(BigInteger, ForeignKey("user.id", ondelete="CASCADE"), nullable=False),
+)
+----
+
+This ensures that when a User or Project is deleted, all related Contributions are automatically removed.
+
+=== Timestamps
+
+Two types of timestamp handling:
+
+==== Without Timezone (User, Project tables)
+[source,python]
+----
+created_at: Optional[datetime] = Field(
+    default=None,
+    sa_column=Column(
+        DateTime(timezone=False),
+        server_default=func.current_timestamp(),
+        nullable=False,
+    ),
+)
+----
+
+==== With Timezone (Contribution table)
+[source,python]
+----
+applied_at: Optional[datetime] = Field(
+    default=None,
+    sa_column=Column(
+        DateTime(timezone=True),
+        server_default=func.current_timestamp(),
+        nullable=False,
+    ),
+)
+----
+
+=== Auto-updating Timestamps
+
+The `updated_at` fields automatically update when records are modified:
+
+[source,python]
+----
+updated_at: Optional[datetime] = Field(
+    default=None,
+    sa_column=Column(
+        DateTime(timezone=False),
+        server_default=func.current_timestamp(),
+        onupdate=func.current_timestamp(),
+        nullable=False,
+    ),
+)
+----
+
+== Relationships
+
+SQLModel uses bidirectional relationships for easy navigation:
+
+=== User ↔ Contribution
+
+[source,python]
+----
+# In User model
+contributions: List["Contribution"] = Relationship(back_populates="user")
+
+# In Contribution model
+user: Optional[User] = Relationship(back_populates="contributions")
+----
+
+=== Project ↔ Contribution
+
+[source,python]
+----
+# In Project model
+contributions: List["Contribution"] = Relationship(back_populates="project")
+
+# In Contribution model
+project: Optional[Project] = Relationship(back_populates="contributions")
+----
+
+== Usage Examples
+
+=== Creating Records
+
+[source,python]
+----
+from app.db.models import User, Project, Contribution
+
+# Create a user
+user = User(
+    username="john_doe",
+    email="john@example.com",
+    password="hashed_password"
+)
+
+# Create a project
+project = Project(
+    title="Awesome OSS Project",
+    repository_url="https://github.com/user/repo",
+    help_wanted=True
+)
+
+# Create a contribution
+contribution = Contribution(
+    fk_user_id=user.id,
+    fk_project_id=project.id,
+    status="interested"
+)
+----
+
+=== Querying with Relationships
+
+[source,python]
+----
+# Get user with contributions
+user = await session.get(User, user_id)
+for contribution in user.contributions:
+    print(f"Contributed to: {contribution.project.title}")
+
+# Get project with contributors
+project = await session.get(Project, project_id)
+contributors = [c.user for c in project.contributions]
+----
+
+== Migration Strategy
+
+For production deployments, use Alembic to manage schema migrations:
+
+1. Generate initial migration from current models
+2. Apply migrations to update database schema
+3. Use `DatabaseEngine.init_db()` only for development/testing
+
+== Best Practices
+
+* Always import models before creating tables or running migrations
+* Use type hints consistently for better IDE support
+* Leverage relationships for complex queries
+* Keep business logic in separate service layers
+* Use Pydantic's validation features for input sanitization
