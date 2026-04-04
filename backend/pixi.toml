@@ -16,6 +16,7 @@ sqlmodel = ">=0.0.16"
 psycopg2-binary = ">=2.9.9"
 asyncpg = ">=0.29.0"
 python-dotenv = ">=1.0.1"
+pytest = ">=9.0.2,<10"
 
 [tasks]
 # Task to start the development server with hot reload
