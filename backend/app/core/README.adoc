@@ -1,0 +1,117 @@
+= Core Configuration Design
+:toc:
+:sectnums:
+
+This document explains the design of the backend core configuration layer in `backend/app/core`.
+It focuses on the settings model, `.env` loading, and the database settings inheritance hierarchy.
+
+== Goals
+
+* Provide a single, read-only configuration object for the backend
+* Keep the database connection configuration isolated from business logic
+* Use inheritance to support multiple database connection types in the future
+* Keep the current implementation focused on PostgreSQL while allowing clean extension
+
+== Settings model
+
+The core settings implementation uses Pydantic's `BaseSettings` class as the foundation.
+This gives us automatic environment variable loading, validation, and optional `.env` support.
+
+[source,python]
+----
+class DBSettings(BaseSettings, ABC):
+    ...
+----
+
+`DBSettings` is the abstract base class for all database-related settings models.
+It defines shared settings fields such as `APP_NAME`, `ENVIRONMENT`, and `DEBUG`.
+It also declares an abstract `db_url` property:
+
+* `@abstractmethod` ensures subclasses must implement `db_url`
+* `ABC` makes `DBSettings` an abstract base class
+* this creates a clear contract for future database-specific settings classes
+
+== PostgreSQL implementation
+
+The current concrete implementation is `PSQLSettings`, which inherits from `DBSettings`.
+It adds PostgreSQL-specific fields:
+
+* `POSTGRES_USER`
+* `POSTGRES_PASSWORD`
+* `POSTGRES_DB`
+* `POSTGRES_HOST`
+* `POSTGRES_PORT`
+
+The `db_url` property in `PSQLSettings` builds a SQLAlchemy-compatible connection string.
+Because this class inherits from `DBSettings`, it can be used wherever a generic database settings type is expected.
+
+[source,python]
+----
+class PSQLSettings(DBSettings):
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_DB: str
+    POSTGRES_HOST: str = "localhost"
+    POSTGRES_PORT: int = 5432
+
+    @property
+    def db_url(self) -> str:
+        return (
+            f"postgresql+asyncpg://{self.POSTGRES_USER}:"
+            f"{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:"
+            f"{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
+----
+
+== Environment loading
+
+The core module includes a helper `_get_default_env_file()` that searches for `.env` relative to `backend/app/core` and upwards.
+This allows the same settings logic to work whether the `.env` file is placed in the package folder or at the backend root.
+
+`SettingsConfigDict` is configured with:
+
+* `env_file` to load values from the resolved `.env`
+* `env_file_encoding="utf-8"`
+* `frozen=True` to make settings instances immutable
+* `extra="ignore"` to ignore unknown environment variables
+
+== Singleton settings instance
+
+The module exposes a cached settings instance:
+
+[source,python]
+----
+@lru_cache(maxsize=1)
+def get_psql_settings() -> PSQLSettings:
+    return PSQLSettings()
+
+settings = get_psql_settings()
+----
+
+This ensures the backend reads the configuration only once and shares a single immutable settings object across modules.
+
+== Extending the hierarchy
+
+To support another database type in the future, add a new subclass of `DBSettings`.
+For example:
+
+* `MySQLSettings(DBSettings)`
+* `SQLiteSettings(DBSettings)`
+* `OracleSettings(DBSettings)`
+
+Each subclass only needs to implement its own connection fields and `db_url` property.
+This keeps the core configuration design clean and reusable.
+
+== Why no `main.py` in this branch
+
+The current branch is focused on the core settings layer only.
+Separating the app entrypoint (`main.py`) from configuration evolution helps keep the design work scoped and easier to review.
+
+== Summary
+
+The `core` module is implemented this way to provide:
+
+* a clear interface for database settings via `DBSettings`
+* a concrete PostgreSQL implementation in `PSQLSettings`
+* immutable, validated configuration
+* a future-friendly way to add new database connection types by inheritance
