@@ -1,0 +1,52 @@
+= Repository Module
+:toc:
+:toc-placement!:
+
+This directory contains the Data Access Layer (DAL) of the Open-Source-Software-Network backend, implemented using the Repository Design Pattern.
+
+toc::[]
+
+== 🎯 Purpose
+The Repository pattern acts as a strict abstraction layer between our database engine (using SQLAlchemy's AsyncSession and SQLModel) and our application's business logic and API layers.
+
+By isolating all database queries within this module, we ensure that:
+
+The API and Service layers remain "dumb" regarding data storage—they don't need to know how data is fetched or persisted.
+
+We prevent the "Fat Controller" anti-pattern in our API routers.
+
+Our application code becomes highly reusable and significantly easier to unit test, as repositories can be mocked effortlessly.
+
+== 📂 Structure
+The module is built around a generic base class to prevent code duplication, followed by specific repositories for each entity:
+
+base.py: Contains the generic BaseRepository[ModelType, CreateSchemaType, UpdateSchemaType]. This generic class provides standard asynchronous CRUD operations out-of-the-box (get, get_multi, create, update, delete).
+
+user.py: Contains the UserRepository to handle queries specific to the User model (e.g., get_by_email, get_by_username).
+
+project.py: Contains the ProjectRepository for queries specific to the Project model (e.g., get_help_wanted_projects).
+
+contribution.py: Contains the ContributionRepository for queries related to the many-to-many Contribution relationships.
+
+== 🛠️ Usage Example
+All repositories require an active AsyncSession (provided by the DatabaseEngine in the db module) to execute transactions.
+
+When adding a new entity to the database, follow this pattern to create its repository:
+
+[source,python]
+
+from app.repository.base import BaseRepository
+from app.db.models import User
+from app.schemas.user import UserCreate, UserUpdate
+from sqlalchemy.ext.asyncio import AsyncSession
+
+class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
+async def get_by_email(self, db: AsyncSession, *, email: str) -> User | None:
+# Implement custom, specific query logic here
+pass
+
+== 🔗 Internal Dependencies
+
+backend/app/db/models.py: Provides the SQLModel entities that these repositories operate on.
+
+backend/app/db/session.py: Provides the AsyncSession dependency required for execution.
