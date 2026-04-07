@@ -1,0 +1,52 @@
+= Schemas Module
+:toc:
+:toc-placement!:
+
+This directory contains the Pydantic schemas for data validation in the Open-Source-Software-Network backend.
+
+toc::[]
+
+== 🎯 Purpose
+The schemas define the structure and validation rules for data exchanged between the API layer and the outside world (clients, databases). They ensure data integrity, provide automatic validation, and generate OpenAPI documentation.
+
+By using Pydantic schemas:
+
+- Input data from API requests is validated before processing.
+- Output data is serialized consistently.
+- Type hints improve IDE support and catch errors early.
+- Automatic JSON schema generation for API docs.
+
+== 📂 Structure
+The module provides base, create, update, and read schemas for each entity:
+
+base.py: Contains base schemas shared across operations (not implemented yet, but could be added for common fields).
+
+user.py: Schemas for User entity (UserBase, UserCreate, UserUpdate, User).
+
+project.py: Schemas for Project entity (ProjectBase, ProjectCreate, ProjectUpdate, Project).
+
+contribution.py: Schemas for Contribution entity (ContributionBase, ContributionCreate, ContributionUpdate, Contribution).
+
+== 🛠️ Usage Example
+Schemas are used in the repository layer for create and update operations, and in the API layer for request/response handling.
+
+[source,python]
+----
+from app.schemas.user import UserCreate, UserUpdate
+
+# In repository
+user_repo = UserRepository(User)
+new_user = await user_repo.create(db, obj_in=UserCreate(username="john", email="john@example.com", password="secret"))
+
+# In API (future)
+@app.post("/users/", response_model=User)
+async def create_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
+    return await user_repo.create(db, obj_in=user_in)
+----
+
+== 🔗 Internal Dependencies
+These schemas are used by:
+
+- `backend/app/repository/`: For create and update operations in repositories.
+- `backend/app/api/`: For request validation and response serialization (future implementation).</content>
+<parameter name="filePath">c:\workspace\project\OSSN\backend\app\schemas\README.adoc
