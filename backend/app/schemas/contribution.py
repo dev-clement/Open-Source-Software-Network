@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -18,9 +18,8 @@ class ContributionUpdate(BaseModel):
 
 
 class Contribution(ContributionBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     applied_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
