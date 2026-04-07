@@ -30,7 +30,7 @@ STATUS_AT_DB_LIMIT = "s" * 20
 STATUS_OVER_DB_LIMIT = "s" * 21
 
 MIN_POSITIVE_INT = 1
-MAX_BIGINT = sys.maxsize         # 9_223_372_036_854_775_807
+MAX_BIGINT = 9_223_372_036_854_775_807
 
 
 # ===========================================================================
@@ -76,7 +76,7 @@ class TestUserBase:
             github_page="https://github.com/alice",
             bio="OSS contributor",
         )
-        assert u.github_page == "https://github.com/alice"
+        assert str(u.github_page) == "https://github.com/alice"
         assert u.bio == "OSS contributor"
 
     def test_optional_fields_default_to_none(self):
@@ -114,10 +114,8 @@ class TestUserBase:
         assert len(u.username) == 255
 
     def test_username_over_db_limit_accepted_by_schema(self):
-        # No max_length on schema side; a 256-char username passes Pydantic
-        # but would be rejected by the DB (String(255) column).
-        u = UserBase(username=STR_OVER_DB_LIMIT, email=VALID_EMAIL)
-        assert len(u.username) == 256
+        with pytest.raises(ValidationError):
+            UserBase(username=STR_OVER_DB_LIMIT, email=VALID_EMAIL)
 
 
 # ===========================================================================
@@ -148,8 +146,8 @@ class TestUserCreate:
         assert len(u.password) == 255
 
     def test_password_over_db_limit_accepted_by_schema(self):
-        u = UserCreate(username="alice", email=VALID_EMAIL, password="p" * 256)
-        assert len(u.password) == 256
+        with pytest.raises(ValidationError):
+            UserCreate(username="alice", email=VALID_EMAIL, password="p" * 256)
 
 
 # ===========================================================================
@@ -259,7 +257,11 @@ class TestProjectBase:
 
     def test_repository_url_is_str_type(self):
         p = ProjectBase(title="OSS Tool", repository_url="https://github.com/org/repo")
-        assert isinstance(p.repository_url, str)
+        assert str(p.repository_url) == "https://github.com/org/repo"
+
+    def test_repository_url_non_http_https_raises(self):
+        with pytest.raises(ValidationError):
+            ProjectBase(title="OSS Tool", repository_url="ftp://example.com/repo")
 
     def test_help_wanted_is_bool_type(self):
         p = ProjectBase(title="OSS Tool", repository_url="https://github.com/org/repo", help_wanted=True)
@@ -283,8 +285,8 @@ class TestProjectBase:
         assert len(p.title) == 255
 
     def test_title_over_db_limit_accepted_by_schema(self):
-        p = ProjectBase(title=STR_OVER_DB_LIMIT, repository_url="https://github.com/org/repo")
-        assert len(p.title) == 256
+        with pytest.raises(ValidationError):
+            ProjectBase(title=STR_OVER_DB_LIMIT, repository_url="https://github.com/org/repo")
 
 
 # ===========================================================================
@@ -344,11 +346,11 @@ class TestProject:
             )
 
     def test_id_is_int_type(self):
-        p = Project(id=1, title="X", repository_url="u", created_at=NOW, updated_at=NOW)
+        p = Project(id=1, title="X", repository_url="https://github.com/o/r", created_at=NOW, updated_at=NOW)
         assert isinstance(p.id, int)
 
     def test_timestamps_are_datetime_type(self):
-        p = Project(id=1, title="X", repository_url="u", created_at=NOW, updated_at=NOW)
+        p = Project(id=1, title="X", repository_url="https://github.com/o/r", created_at=NOW, updated_at=NOW)
         assert isinstance(p.created_at, datetime)
         assert isinstance(p.updated_at, datetime)
 
@@ -357,15 +359,15 @@ class TestProject:
 
     def test_id_invalid_string_raises(self):
         with pytest.raises(ValidationError):
-            Project(id="NaN", title="X", repository_url="u", created_at=NOW, updated_at=NOW)
+            Project(id="NaN", title="X", repository_url="https://github.com/o/r", created_at=NOW, updated_at=NOW)
 
     # --- id min / max ---
     def test_id_min_positive(self):
-        p = Project(id=MIN_POSITIVE_INT, title="X", repository_url="u", created_at=NOW, updated_at=NOW)
+        p = Project(id=MIN_POSITIVE_INT, title="X", repository_url="https://github.com/o/r", created_at=NOW, updated_at=NOW)
         assert p.id == MIN_POSITIVE_INT
 
     def test_id_max_biginteger(self):
-        p = Project(id=MAX_BIGINT, title="X", repository_url="u", created_at=NOW, updated_at=NOW)
+        p = Project(id=MAX_BIGINT, title="X", repository_url="https://github.com/o/r", created_at=NOW, updated_at=NOW)
         assert p.id == MAX_BIGINT
 
 
@@ -435,9 +437,8 @@ class TestContributionBase:
         assert len(c.status) == 20
 
     def test_status_over_db_limit_accepted_by_schema(self):
-        # No max_length on schema; DB (String(20)) would reject this at persist time.
-        c = ContributionBase(fk_user_id=1, fk_project_id=1, status=STATUS_OVER_DB_LIMIT)
-        assert len(c.status) == 21
+        with pytest.raises(ValidationError):
+            ContributionBase(fk_user_id=1, fk_project_id=1, status=STATUS_OVER_DB_LIMIT)
 
 
 # ===========================================================================
