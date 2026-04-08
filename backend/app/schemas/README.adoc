@@ -17,9 +17,7 @@ By using Pydantic schemas:
 - Automatic JSON schema generation for API docs.
 
 == 📂 Structure
-The module provides base, create, update, and read schemas for each entity:
-
-base.py: Contains base schemas shared across operations (not implemented yet, but could be added for common fields).
+The module provides create, update, and read schemas for each entity:
 
 user.py: Schemas for User entity (UserBase, UserCreate, UserUpdate, User).
 
@@ -28,26 +26,29 @@ project.py: Schemas for Project entity (ProjectBase, ProjectCreate, ProjectUpdat
 contribution.py: Schemas for Contribution entity (ContributionBase, ContributionCreate, ContributionUpdate, Contribution).
 
 == 🛠️ Usage Example
-Schemas are used in the repository layer for create and update operations, and in the API layer for request/response handling.
+Schemas are used to validate and deserialize incoming data before it reaches business logic or the database.
 
 [source,python]
 ----
 from app.schemas.user import UserCreate, UserUpdate
 
-# In repository
-user_repo = UserRepository(User)
-new_user = await user_repo.create(db, obj_in=UserCreate(username="john", email="john@example.com", password="secret"))
+# Validate and create a schema instance
+user_in = UserCreate(username="john", email="john@example.com", password="secret")
+
+# Access validated fields
+print(user_in.username)   # "john"
+print(user_in.email)      # "john@example.com"
 
 # In API (future)
 @app.post("/users/", response_model=User)
-async def create_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
-    return await user_repo.create(db, obj_in=user_in)
+async def create_user(user_in: UserCreate):
+    # user_in is already validated at this point
+    ...
 ----
 
 == 🔗 Internal Dependencies
 These schemas are used by:
 
-- `backend/app/repository/`: For create and update operations in repositories.
 - `backend/app/api/`: For request validation and response serialization (future implementation).
 
 == 🧠 Validation Design (Why and How)
