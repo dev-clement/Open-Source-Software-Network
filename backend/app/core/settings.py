@@ -74,12 +74,27 @@ class PSQLSettings(DBSettings):
 
     @property
     def db_url(self) -> str:
-        """Build and return the PostgreSQL connection URL.
+        """Build and return the async PostgreSQL connection URL.
 
-        :return: A SQLAlchemy-compatible PostgreSQL connection URL.
+        :return: A SQLAlchemy-compatible async PostgreSQL connection URL.
         """
         return (
             f"postgresql+asyncpg://{self.POSTGRES_USER}:"
+            f"{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:"
+            f"{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
+
+    @property
+    def sync_db_url(self) -> str:
+        """Build and return the synchronous PostgreSQL connection URL.
+
+        Used by Alembic migrations which require a synchronous database
+        connection.
+
+        :return: A SQLAlchemy-compatible synchronous PostgreSQL connection URL.
+        """
+        return (
+            f"postgresql+psycopg2://{self.POSTGRES_USER}:"
             f"{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:"
             f"{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         )

@@ -29,6 +29,21 @@ def test_settings_builds_database_url_from_env_values():
     )
 
 
+def test_settings_builds_sync_database_url_from_env_values():
+    config = PSQLSettings(
+        POSTGRES_USER="user",
+        POSTGRES_PASSWORD="pass",
+        POSTGRES_DB="db",
+        POSTGRES_HOST="dbhost",
+        POSTGRES_PORT=5432,
+    )
+
+    assert (
+        config.sync_db_url
+        == "postgresql+psycopg2://user:pass@dbhost:5432/db"
+    )
+
+
 def test_settings_is_immutable():
     config = PSQLSettings(
         POSTGRES_USER="user",

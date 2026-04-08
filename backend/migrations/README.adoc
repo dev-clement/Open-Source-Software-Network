@@ -1,0 +1,96 @@
+= Database Migrations
+
+== Overview
+
+Database migrations for the OSSN backend are managed with https://alembic.sqlalchemy.org/[Alembic].
+Alembic tracks schema changes as versioned revision files and applies them in order so every environment stays in sync.
+
+== Prerequisites
+
+* A running PostgreSQL instance reachable from your local machine.
+* A `.env` file at the backend root (or any parent directory that the settings loader checks) that contains the following variables:
+
+[source,dotenv]
+----
+POSTGRES_USER=<user>
+POSTGRES_PASSWORD=<password>
+POSTGRES_DB=<database>
+POSTGRES_HOST=localhost   # optional, defaults to localhost
+POSTGRES_PORT=5432        # optional, defaults to 5432
+----
+
+All migration commands must be run from the `backend/` directory.
+
+== Common Commands
+
+=== Apply all pending migrations
+
+[source,bash]
+----
+alembic upgrade head
+----
+
+=== Roll back the last applied migration
+
+[source,bash]
+----
+alembic downgrade -1
+----
+
+=== Show the current revision applied to the database
+
+[source,bash]
+----
+alembic current
+----
+
+=== Show the full migration history
+
+[source,bash]
+----
+alembic history --verbose
+----
+
+== Creating a New Migration
+
+After changing one or more SQLModel models in `app/db/models.py`, generate a new
+revision with autogenerate support:
+
+[source,bash]
+----
+alembic revision --autogenerate -m "short_description_of_change"
+----
+
+Review the generated file under `migrations/versions/` before applying it.
+Alembic's autogenerate is a helpful starting point but it does **not** detect every
+possible change (e.g. server defaults, check constraints). Always review and adjust
+the generated file as needed.
+
+Then apply it:
+
+[source,bash]
+----
+alembic upgrade head
+----
+
+== Directory Layout
+
+[source]
+----
+migrations/
+├── README.adoc          ← this file
+├── README               ← plain-text summary for Alembic tooling
+├── env.py               ← Alembic environment: wires SQLModel metadata + settings URL
+├── script.py.mako       ← template for new revision files
+└── versions/
+    └── 0001_initial_schema.py   ← initial migration (all three tables)
+----
+
+== Configuration
+
+* `alembic.ini` – located in `backend/`.  The `sqlalchemy.url` key is intentionally
+  left blank because the URL is resolved at runtime from `app/core/settings.PSQLSettings`
+  via `env.py`.  No credentials are stored in the ini file.
+* `env.py` – imports `SQLModel.metadata` (which is populated when `app.db.models` is
+  imported) and calls `settings.sync_db_url` to obtain a `psycopg2`-based synchronous
+  URL for Alembic.
