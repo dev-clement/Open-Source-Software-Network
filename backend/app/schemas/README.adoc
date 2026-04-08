@@ -1,0 +1,110 @@
+= Schemas Module
+:toc:
+:toc-placement!:
+
+This directory contains the Pydantic schemas for data validation in the Open-Source-Software-Network backend.
+
+toc::[]
+
+== 🎯 Purpose
+The schemas define the structure and validation rules for data exchanged between the API layer and the outside world (clients, databases). They ensure data integrity, provide automatic validation, and generate OpenAPI documentation.
+
+By using Pydantic schemas:
+
+- Input data from API requests is validated before processing.
+- Output data is serialized consistently.
+- Type hints improve IDE support and catch errors early.
+- Automatic JSON schema generation for API docs.
+
+== 📂 Structure
+The module provides create, update, and read schemas for each entity:
+
+user.py: Schemas for User entity (UserBase, UserCreate, UserUpdate, User).
+
+project.py: Schemas for Project entity (ProjectBase, ProjectCreate, ProjectUpdate, Project).
+
+contribution.py: Schemas for Contribution entity (ContributionBase, ContributionCreate, ContributionUpdate, Contribution).
+
+== 🛠️ Usage Example
+Schemas are used to validate and deserialize incoming data before it reaches business logic or the database.
+
+[source,python]
+----
+from app.schemas.user import UserCreate, UserUpdate
+
+# Validate and create a schema instance
+user_in = UserCreate(username="john", email="john@example.com", password="secret")
+
+# Access validated fields
+print(user_in.username)   # "john"
+print(user_in.email)      # "john@example.com"
+
+# In API (future)
+@app.post("/users/", response_model=User)
+async def create_user(user_in: UserCreate):
+    # user_in is already validated at this point
+    ...
+----
+
+== 🔗 Internal Dependencies
+These schemas are used by:
+
+- `backend/app/api/`: For request validation and response serialization (future implementation).
+
+== 🧠 Validation Design (Why and How)
+
+=== Why use Pydantic?
+
+Pydantic is used because it gives us runtime validation based on Python type hints.
+It ensures request/response data is valid before it reaches business logic or the database.
+
+Benefits for this project:
+
+- Fast and explicit validation errors.
+- Strong typing in code and IDE.
+- Clean serialization/deserialization between Python objects and JSON.
+- Automatic API schema generation for FastAPI.
+
+=== Why use `Annotated`?
+
+`Annotated` lets us attach validation constraints directly to a base type.
+Example: a `str` can become "string with min/max length", and an `int` can become "strict bigint range".
+
+This avoids repeating the same constraints in many fields.
+
+=== Why is it called `Annotated`?
+
+Because it is literally a type annotation with extra metadata.
+You start from a base type (`str`, `int`, etc.) and annotate it with validation rules.
+
+=== What inherits from `BaseModel`?
+
+Schemas like `UserBase`, `UserCreate`, `UserUpdate`, `User`, `ProjectBase`, `ContributionBase`, etc., all inherit from `BaseModel`.
+
+Those classes represent full data shapes (objects with multiple fields).
+
+=== Why both `Annotated` and `BaseModel`?
+
+They solve different levels of validation:
+
+- `Annotated`: field-level reusable constraints on a single value type.
+- `BaseModel`: object-level schema (group of fields, required/optional fields, defaults, and model behavior).
+
+They are complementary, not competing approaches.
+
+=== Is `Annotated` a single type while `BaseModel` is a class?
+
+Yes.
+
+- `Annotated[...]` defines a constrained type alias.
+- A class inheriting from `BaseModel` defines a structured model composed of fields.
+
+=== Are `BaseModel` classes used as instances in the application flow?
+
+Yes.
+
+In practice:
+
+- API receives JSON and creates a schema instance (for example `UserCreate`).
+- Repository/service code receives that instance and uses validated data.
+- Response schemas (for example `User`) are instantiated/returned to serialize output consistently.

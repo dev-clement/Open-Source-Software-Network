@@ -1,0 +1,37 @@
+= Changelog
+:toc:
+:toc-placement!:
+
+This file tracks notable changes made to OSSN.
+
+toc::[]
+
+== 2026-04-07
+
+=== Fixed
+
+* Corrected package exports in `backend/app/db/__init__.py`.
+* Replaced invalid exports (`engine`, `get_session`) with valid exports (`DatabaseEngine`, `models`).
+
+=== Why This Change Was Needed
+
+* In `backend/app/db/session.py`, `get_session` is implemented as a method of `DatabaseEngine`, not as a module-level function.
+* `engine` is also an instance attribute of `DatabaseEngine`, not a module-level object.
+* Importing `engine` and `get_session` directly from `app.db.session` in `app.db.__init__` caused import-time errors during test collection.
+
+=== Impact
+
+* Unit tests involving DB modules can import the package correctly again.
+* The `app.db` package API is now aligned with the actual implementation in `session.py`.
+
+=== Notes
+
+* `get_session` has consistently been class-scoped (`DatabaseEngine.get_session`) in this codebase.
+* The previous `__init__.py` export mismatch was a package-export inconsistency, not a runtime behavior change in the session implementation.
+
+=== Branch Scope Clarification
+
+* This DB package export correction appears in the `feat/schemas-data-validation` branch only as a consistency fix.
+* It does not introduce new database behavior and is not part of schema design scope.
+* The change was included to prevent import/test failures while working on the schema branch.
+* Functional database refactor work remains associated with the earlier backend/session implementation history.
