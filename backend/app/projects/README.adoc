@@ -1,0 +1,43 @@
+= Projects Domain
+:toc:
+:toc-placement!:
+
+The `projects` domain handles all Open-Source Software project management logic.
+
+toc::[]
+
+== 🎯 Module Goal
+
+Provide endpoints and services for creating, listing, and managing OSS projects.  
+Allow projects to declare help-wanted status and repository URLs.
+
+== 📂 Structure
+
+* `schemas.py` — Pydantic request/response models (ProjectCreate, ProjectRead, etc.)
+* `service.py` — ProjectService with business logic (create, list, get details)
+* `repository.py` — ProjectRepository for data access (queries, filtering)
+* `api.py` — FastAPI routes (POST /projects, GET /projects, GET /projects/{id})
+* `__init__.py` — Public exports from projects domain
+
+== 🏗️ Architecture
+
+All project-related code lives here:
+- Request validation (schemas)
+- Business rules (service: validation, help-wanted filtering)
+- Data access (repository: project queries, uniqueness checks)
+- HTTP endpoints (api: route handlers)
+
+Separating projects into its own domain makes it easy to extend with new features (e.g., project settings, tags) without impacting other domains.
+
+== 📋 Key Entities
+
+* `Project` — ORM model in `app/db/models.py`
+* `ProjectBase`, `ProjectCreate`, `ProjectRead` — Schemas for API layers
+* `ProjectRepository` — Interface for project data queries
+
+== ✅ Testing
+
+Tests for projects should live in `tests/projects/`:
+- Unit tests for service logic
+- Integration tests for routes
+- Fixtures for projects in `conftest.py`
