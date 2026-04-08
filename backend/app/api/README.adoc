@@ -1,0 +1,49 @@
+= API Module
+:toc:
+:toc-placement!:
+
+The `api` module is the front door of the Open-Source-Software-Network backend. It is strictly responsible for handling incoming client requests, routing them to the appropriate business logic, and returning standardized HTTP responses.
+
+toc::[]
+
+== 🎯 Module Goal
+To maintain a clean and scalable architecture, this module is designed to be as "dumb" as possible. It should *not* contain complex business rules or direct database queries. Instead, it delegates those responsibilities to the Service and Repository layers.
+
+== 🏗️ Architecture & Flow
+When a request hits the API, it follows a strict unidirectional flow:
+
+`Client Request -> API (Router) -> Service Layer -> Repository Layer -> Database`
+
+=== 1. API (Routers)
+Located in `api/routers/` or `api/endpoints/`.
+* **Responsibility:** Define HTTP methods (GET, POST, etc.), path parameters, query strings, and status codes.
+* **Action:** Parses incoming requests using Schema models (DTOs), calls a Service method, and returns the result.
+
+=== 2. Services (Business Logic)
+Located in `services/` (can be a separate module or a sub-package).
+* **Responsibility:** The brain of the application. Handles rules, calculations, and orchestrates data.
+* **Action:** Takes data from the API, applies business rules, and calls one or multiple Repositories to read/write data.
+
+=== 3. Repositories (Data Access Layer)
+Located in `repository/` or `crud/` (usually decoupled from the `api` module itself).
+* **Responsibility:** Abstracts the database. The rest of the app doesn't know if we use PostgreSQL, MongoDB, or a 3rd party API.
+* **Action:** Executes CRUD operations using the models defined in the `db` module.
+
+=== 4. Schemas (Data Transfer Objects)
+Located in `schemas/`.
+* **Responsibility:** Validates data structures entering and leaving the API. 
+* **Action:** Ensures the API only accepts valid payloads and never accidentally leaks sensitive database fields to the client.
+
+== 💡 Design Patterns in Use
+
+* **Repository Pattern:** Isolates the database session and query logic. If the DB schema changes, only the repository needs updating, not the API.
+* **Service Layer Pattern:** Keeps business logic out of the HTTP handlers. This makes the logic highly reusable (e.g., if you later add a CLI or background workers, they can use the same Services).
+* **Dependency Injection (DI):** Repositories are injected into Services, and Services are injected into API routes. This makes unit testing incredibly easy, as dependencies can be easily mocked.
+
+== 🚀 Getting Started
+
+When adding a new feature (e.g., "User Registration"):
+1. Define the input/output in a **Schema**.
+2. Write the database logic in a **Repository**.
+3. Write the business rules in a **Service**.
+4. Finally, expose the Service via an endpoint in this **API** module.

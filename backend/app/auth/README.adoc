@@ -1,0 +1,44 @@
+= Auth Domain
+:toc:
+:toc-placement!:
+
+The `auth` domain encapsulates all user authentication and authorization logic for the OSSN backend.
+
+toc::[]
+
+== 🎯 Module Goal
+
+Provide secure user signup, login, logout, and profile management flows.  
+Keep authentication logic isolated, testable, and reusable.
+
+== 📂 Structure
+
+* `schemas.py` — Pydantic request/response models (SignupRequest, LoginResponse, etc.)
+* `service.py` — AuthService with business logic (register, authenticate, validate)
+* `repository.py` — UserRepository interface and SQL queries for auth
+* `api.py` — FastAPI routes (POST /auth/signup, /login, /logout)
+* `__init__.py` — Public exports from auth domain
+
+== 🏗️ Architecture
+
+All auth-related code lives here:
+- Request validation (schemas)
+- Business rules (service: password hashing, JWT generation)
+- Data access (repository: user lookup, create)
+- HTTP endpoints (api: route handlers)
+
+This keeps auth concerns together and makes it easy to reason about the entire auth flow.
+
+== 🔒 Security Notes
+
+* Passwords are never stored in plain text; always hashed with `pwdlib` or `passlib`
+* JWT tokens are short-lived (access) with optional refresh tokens
+* Logout can be stateless (client deletes token) or stateful (token blacklist)
+* Sensitive operations are logged but never expose secrets in logs
+
+== ✅ Testing
+
+Tests for auth should live in `tests/auth/`:
+- Unit tests for service logic (fake repository)
+- Integration tests for routes (real DB in test environment)
+- Fixtures for users and tokens in `conftest.py`

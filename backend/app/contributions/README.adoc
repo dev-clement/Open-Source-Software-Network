@@ -1,0 +1,43 @@
+= Contributions Domain
+:toc:
+:toc-placement!:
+
+The `contributions` domain manages user contributions to open-source projects.
+
+toc::[]
+
+== 🎯 Module Goal
+
+Provide endpoints and services for users to apply to contribute, track contribution status, and list their participation history.
+
+== 📂 Structure
+
+* `schemas.py` — Pydantic request/response models (ContributionCreate, ContributionRead, etc.)
+* `service.py` — ContributionService with business logic (apply, list, update status)
+* `repository.py` — ContributionRepository for data access (queries, filtering by user/project)
+* `api.py` — FastAPI routes (POST /projects/{id}/contributions, GET /contributions/me)
+* `__init__.py` — Public exports from contributions domain
+
+== 🏗️ Architecture
+
+All contribution-related code lives here:
+- Request validation (schemas)
+- Business rules (service: authorization, status transitions)
+- Data access (repository: contribution queries, FK lookups)
+- HTTP endpoints (api: route handlers)
+
+Separating contributions makes it easy to add advanced features (e.g., contribution history, role-based workflows) without mixing concerns.
+
+== 📋 Key Entities
+
+* `Contribution` — ORM model in `app/db/models.py` with FK to User and Project
+* `ContributionBase`, `ContributionCreate`, `ContributionRead` — Schemas
+* `ContributionStatus` — Enum in `app/domain/enums.py` (interested, contribute, leader, approver)
+* `ContributionRepository` — Interface for contribution queries
+
+== ✅ Testing
+
+Tests for contributions should live in `tests/contributions/`:
+- Unit tests for service logic
+- Integration tests for routes
+- Fixtures for contributions in `conftest.py`
