@@ -15,26 +15,59 @@ toc::[]
 * Added migration documentation in `backend/migrations/README.adoc`.
 * Added initial database migration revision in `backend/migrations/versions/`.
 * Added migration-focused pytest coverage in `backend/tests/test_migrations.py`.
+* **Scaffolded domain-based architecture with four new domain packages:**
+  ** `backend/app/auth/` — User signup, login, logout, and profile management
+  ** `backend/app/projects/` — Project CRUD operations and help-wanted filtering
+  ** `backend/app/contributions/` — Contribution applications and status tracking
+  ** `backend/app/shared/` — Cross-domain utilities (exceptions, security, dependencies)
+* Added skeleton implementations for Service, Repository, and API layers in each domain.
+* Added comprehensive README.adoc documentation in each domain explaining architectural rationale.
+* Created backward-compatible re-exports in `backend/app/schemas/__init__.py` to maintain existing test imports.
 
 === Changed
 
 * Wired `backend/migrations/env.py` to load project settings and SQLModel metadata.
 * Added support for `ALEMBIC_DATABASE_URL` override in migration environment for local and CI runs.
 * Added `.gitignore` rules for local SQLite DB artifacts generated during migration/testing.
+* **Reorganized backend architecture from layer-based to domain-based design:**
+  ** Schemas (User, Project, Contribution) moved from `app/schemas/` to respective domain packages (`auth/`, `projects/`, `contributions/`)
+  ** Prepared service and repository layers to be implemented within each domain
 
 === Why This Change Was Needed
 
 * The project had SQLModel models but no migration workflow to version and apply schema changes safely.
 * Alembic integration ensures schema evolution is reproducible across local, CI, and deployment environments.
 * Migration tests ensure the migration setup remains valid and executable over time.
+* **Domain-based architecture provides clarity and scalability:**
+  ** Previous layer-based structure (api/, services/, repositories/ as separate directories) made it hard to reason about a single feature
+  ** Grouping auth, projects, and contributions as self-contained domains keeps related code together
+  ** Each domain contains schema (validation), service (business logic), repository (data access), and API (HTTP handlers)
+  ** This pattern makes it easy to add new features without scattering code across multiple directories
+  ** Reduces cognitive load for new developers: "to work on auth, go to auth/ folder"
+* Backward-compatible re-exports keep existing tests passing while allowing gradual migration to new import paths
+* Clear repository and service interfaces enable test-driven development with dependency injection
 
 === Impact
 
 * Database schema changes can now be tracked and applied with Alembic.
 * Team members can run consistent upgrade/downgrade workflows.
 * CI can validate migration infrastructure in addition to existing unit tests.
+* **Architecture improvements:**
+  ** Service and repository layers are now well-defined with clear contracts (abstract base classes and docstrings)
+  ** Dependencies flow in one direction: API → Service → Repository → DB
+  ** Each domain is testable in isolation with fake implementations
+  ** New features can be added as self-contained domains without affecting existing code
+  ** Code organization scales better as OSSN adds more core entities (e.g., discussions, reviews)
 
 === Notes
 
 * Migration tests currently run against temporary SQLite databases for speed and isolation.
 * The migration environment converts async runtime DB URLs to sync driver URLs for Alembic execution.
+* **Architecture patterns used in this refactor:**
+  ** Domain-driven design: each domain is a cohesive unit with clear boundaries
+  ** Service layer pattern: business logic is isolated from HTTP concerns
+  ** Repository pattern: data access is abstracted with interfaces, enabling easy testing and future database swaps
+  ** Dependency injection: services depend on repository interfaces, not concrete implementations
+* Old import paths (e.g., `from app.schemas.user import User`) are maintained for backward compatibility via re-exports in `app/schemas/__init__.py`.
+* Future code should import directly from domain packages (e.g., `from app.auth.schemas import User`) to keep imports explicit and intentions clear.
+* As new domains are added (e.g., discussions, reviews), follow the same pattern: `{domain}/__init__.py`, `{domain}/schemas.py`, `{domain}/service.py`, `{domain}/repository.py`, `{domain}/api.py`, `{domain}/README.adoc`.
