@@ -1,0 +1,40 @@
+= Shared (Cross-Domain Utilities)
+:toc:
+:toc-placement!:
+
+The `shared` module contains utilities, exceptions, and helpers used across all domains.
+
+toc::[]
+
+== 🎯 Module Goal
+
+Centralize reusable code to avoid duplication and keep domains focused on their own logic.
+
+== 📂 Structure
+
+* `exceptions.py` — Custom exceptions (e.g., NotFoundError, UnauthorizedError)
+* `db.py` — Database session factory and utilities
+* `dependencies.py` — FastAPI dependency injection helpers (get_current_user, etc.)
+* `security.py` — Password hashing, JWT generation/validation
+* `__init__.py` — Public exports
+
+== 🏗️ What Lives Here
+
+* **Exceptions** — Custom error types shared across domains (e.g., 404 Not Found, 401 Unauthorized)
+* **Database** — Session management and connection pooling
+* **Security** — Cryptographic utilities (hashing, token generation)
+* **Dependencies** — FastAPI `Depends()` helpers for common patterns (get_current_user)
+
+== 🚫 What Does NOT Live Here
+
+* Domain-specific schemas (stay in each domain's `schemas.py`)
+* Domain-specific repositories (stay in each domain's `repository.py`)
+* ORM models (stay in `app/db/models.py`)
+
+== ✅ Guidelines
+
+Keep `shared` minimal. If you find yourself adding 100 lines of code here, consider:
+- Does it belong to a specific domain? Move it there.
+- Is it truly cross-cutting? Add it here.
+
+Avoid circular imports: `shared` should import from `db`, `core`, `domain`; nothing else imports from `shared` circularly.
