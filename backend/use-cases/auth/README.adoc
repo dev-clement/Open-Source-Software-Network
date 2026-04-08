@@ -1,0 +1,40 @@
+= Auth Use-Cases
+:toc:
+:toc-placement!:
+
+This folder documents the **authentication route architecture** for the OSSN backend.
+It defines how auth-related behaviors should work before full implementation in the `app/auth` package.
+
+toc::[]
+
+== Purpose
+
+The goal of this folder is to capture business and API behavior for authentication flows in a clear, implementation-ready format.
+
+These documents are the source of truth for:
+
+* API route design (`/auth/...`)
+* service-layer behavior in `app/auth/service.py`
+* repository interactions in `app/auth/repository.py`
+* validation and error handling expectations
+
+== Route Architecture Scope
+
+The auth use-cases describe the expected route behavior for:
+
+* `POST /auth/signup`
+* `POST /auth/login`
+* `POST /auth/logout`
+* OAuth-based registration/login callbacks (GitHub, GitLab, Bitbucket)
+
+The flow definitions here should remain aligned with the backend `app/auth` domain package.
+
+== Table of Contents
+
+* xref:signup.md[Signup Use-Case]
+
+== Notes
+
+* Add one file per auth use-case (e.g., `signin.md`, `logout.md`, `oauth-callback.md`).
+* Each use-case should include actor, preconditions, main flow, alternative flows, and a Mermaid flowchart.
+* Keep this folder focused on behavior and contracts; implementation details belong in backend code.
