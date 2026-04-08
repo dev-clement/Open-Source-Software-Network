@@ -3,6 +3,7 @@ from datetime import datetime
 
 import pytest
 from pydantic import ValidationError
+from app.domain.enums import ContributionStatus
 
 from app.schemas.user import User, UserBase, UserCreate, UserUpdate
 from app.schemas.project import Project, ProjectBase, ProjectCreate, ProjectUpdate
@@ -26,8 +27,6 @@ NOW = datetime(2026, 4, 7, 12, 0, 0)
 STR_AT_DB_LIMIT = "a" * 255
 STR_OVER_DB_LIMIT = "a" * 256   # Schema has no max_length: Pydantic accepts this,
                                  # but the DB would reject it at persist time.
-STATUS_AT_DB_LIMIT = "s" * 20
-STATUS_OVER_DB_LIMIT = "s" * 21
 
 MIN_POSITIVE_INT = 1
 MAX_BIGINT = 9_223_372_036_854_775_807
@@ -431,14 +430,18 @@ class TestContributionBase:
         c = ContributionBase(fk_user_id=1, fk_project_id=MAX_BIGINT)
         assert c.fk_project_id == MAX_BIGINT
 
-    # --- status string min / max ---
-    def test_status_at_db_limit_20(self):
-        c = ContributionBase(fk_user_id=1, fk_project_id=1, status=STATUS_AT_DB_LIMIT)
-        assert len(c.status) == 20
+    # --- status enum ---
+    def test_status_accepts_allowed_value(self):
+        c = ContributionBase(
+            fk_user_id=1,
+            fk_project_id=1,
+            status=ContributionStatus.APPROVER,
+        )
+        assert c.status == ContributionStatus.APPROVER
 
-    def test_status_over_db_limit_accepted_by_schema(self):
+    def test_status_rejects_unknown_value(self):
         with pytest.raises(ValidationError):
-            ContributionBase(fk_user_id=1, fk_project_id=1, status=STATUS_OVER_DB_LIMIT)
+            ContributionBase(fk_user_id=1, fk_project_id=1, status="unknown")
 
 
 # ===========================================================================
@@ -449,7 +452,7 @@ class TestContributionCreate:
 
     def test_valid(self):
         c = ContributionCreate(fk_user_id=1, fk_project_id=2)
-        assert c.status == "interested"
+        assert c.status == ContributionStatus.INTERESTED
 
 
 # ===========================================================================
@@ -463,8 +466,8 @@ class TestContributionUpdate:
         assert c.status is None
 
     def test_partial_update(self):
-        c = ContributionUpdate(status="contributed")
-        assert c.status == "contributed"
+        c = ContributionUpdate(status=ContributionStatus.LEADER)
+        assert c.status == ContributionStatus.LEADER
 
 
 # ===========================================================================

@@ -1,19 +1,17 @@
 from typing import Annotated, Optional
 from datetime import datetime
-
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field
+from app.domain.enums import ContributionStatus
 
 
 MAX_BIGINT = 9_223_372_036_854_775_807
 
 BigIntId = Annotated[int, Field(strict=True, ge=1, le=MAX_BIGINT)]
-ContributionStatus = Annotated[str, StringConstraints(min_length=1, max_length=20)]
-
 
 class ContributionBase(BaseModel):
     fk_user_id: BigIntId
     fk_project_id: BigIntId
-    status: ContributionStatus = "interested"
+    status: ContributionStatus = ContributionStatus.INTERESTED
 
 
 class ContributionCreate(ContributionBase):

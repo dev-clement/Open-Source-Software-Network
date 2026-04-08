@@ -1,9 +1,11 @@
 from datetime import datetime
 from typing import List, Optional
+from pydantic import AnyHttpUrl
 from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, String, Text
 from sqlalchemy.sql import func
 from sqlalchemy.sql.schema import Identity
 from sqlmodel import Field, Relationship, SQLModel
+from app.domain.enums import ContributionStatus
 
 
 class User(SQLModel, table=True):
@@ -22,7 +24,7 @@ class User(SQLModel, table=True):
     username: str = Field(sa_column=Column(String(255), nullable=False))
     email: str = Field(sa_column=Column(String(255), nullable=False, unique=True))
     password: str = Field(sa_column=Column(String(255), nullable=False))
-    github_page: Optional[str] = Field(default=None, sa_column=Column(String(255), nullable=True))
+    github_page: Optional[AnyHttpUrl] = Field(default=None, sa_column=Column(String(255), nullable=True))
     bio: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
     created_at: Optional[datetime] = Field(
         default=None,
@@ -60,7 +62,7 @@ class Project(SQLModel, table=True):
     )
     title: str = Field(sa_column=Column(String(255), nullable=False))
     description: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
-    repository_url: str = Field(sa_column=Column(String(255), nullable=False, unique=True))
+    repository_url: AnyHttpUrl = Field(sa_column=Column(String(255), nullable=False, unique=True))
     help_wanted: bool = Field(default=False, sa_column=Column(Boolean, nullable=False))
     created_at: Optional[datetime] = Field(
         default=None,
@@ -102,9 +104,9 @@ class Contribution(SQLModel, table=True):
     fk_project_id: int = Field(
         sa_column=Column(BigInteger, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False),
     )
-    status: str = Field(
-        default="interested",
-        sa_column=Column(String(20), nullable=False, server_default="interested"),
+    status: ContributionStatus = Field(
+        default=ContributionStatus.INTERESTED,
+        sa_column=Column(String(20), nullable=False, server_default=ContributionStatus.INTERESTED.value),
     )
     applied_at: Optional[datetime] = Field(
         default=None,
