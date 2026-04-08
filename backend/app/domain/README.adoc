@@ -1,0 +1,42 @@
+= Domain Module
+:toc:
+:toc-placement!:
+
+This directory contains shared domain-level types used across backend layers.
+
+It is intentionally framework-light and focused on business vocabulary that should stay consistent in:
+
+- DB models
+- API schemas
+- Service logic
+
+toc::[]
+
+== Purpose
+
+The domain package avoids duplication and drift by centralizing reusable concepts.
+
+Current content:
+
+- enums.py: Domain enums, including ContributionStatus.
+
+== Why This Package Exists
+
+Without a shared domain module, the same business constants are often duplicated in multiple places (for example schemas and models), which can diverge over time.
+
+Using this package keeps one source of truth for those concepts.
+
+== Design Notes
+
+- Keep domain code independent from transport concerns (HTTP) and persistence details (ORM-specific logic) when possible.
+- Domain names should match business language.
+- Prefer small, explicit modules (enums.py, value_objects.py, constants.py) as the package grows.
+
+== Usage Example
+
+[source,python]
+----
+from app.domain.enums import ContributionStatus
+
+status = ContributionStatus.INTERESTED
+----
