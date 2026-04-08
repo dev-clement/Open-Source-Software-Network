@@ -1,0 +1,40 @@
+= Changelog
+:toc:
+:toc-placement!:
+
+This file tracks notable changes made to OSSN.
+
+toc::[]
+
+== 2026-04-08
+
+=== Added
+
+* Added Alembic dependency in backend Pixi configuration.
+* Initialized Alembic migration scaffold in backend (`alembic.ini`, `migrations/`, `script.py.mako`).
+* Added migration documentation in `backend/migrations/README.adoc`.
+* Added initial database migration revision in `backend/migrations/versions/`.
+* Added migration-focused pytest coverage in `backend/tests/test_migrations.py`.
+
+=== Changed
+
+* Wired `backend/migrations/env.py` to load project settings and SQLModel metadata.
+* Added support for `ALEMBIC_DATABASE_URL` override in migration environment for local and CI runs.
+* Added `.gitignore` rules for local SQLite DB artifacts generated during migration/testing.
+
+=== Why This Change Was Needed
+
+* The project had SQLModel models but no migration workflow to version and apply schema changes safely.
+* Alembic integration ensures schema evolution is reproducible across local, CI, and deployment environments.
+* Migration tests ensure the migration setup remains valid and executable over time.
+
+=== Impact
+
+* Database schema changes can now be tracked and applied with Alembic.
+* Team members can run consistent upgrade/downgrade workflows.
+* CI can validate migration infrastructure in addition to existing unit tests.
+
+=== Notes
+
+* Migration tests currently run against temporary SQLite databases for speed and isolation.
+* The migration environment converts async runtime DB URLs to sync driver URLs for Alembic execution.

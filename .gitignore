@@ -27,6 +27,9 @@ docker_volumes/
 backend/__pycache__/
 backend/*.py[cod]
 backend/*$py.class
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
 backend/.pytest_cache/
 backend/.venv/
 backend/dist/
