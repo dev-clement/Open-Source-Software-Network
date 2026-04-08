@@ -1,4 +1,5 @@
 from logging.config import fileConfig
+import os
 import sys
 from pathlib import Path
 
@@ -23,9 +24,12 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Build a synchronous DB URL from settings (asyncpg -> psycopg2)
-# Alembic requires a sync driver. The app uses asyncpg at runtime.
-_sync_url = settings.db_url.replace("postgresql+asyncpg", "postgresql+psycopg2")
+# Build a synchronous DB URL for Alembic.
+# Priority:
+# 1) ALEMBIC_DATABASE_URL (explicit override for local runs/CI tests)
+# 2) app settings db_url converted from asyncpg to psycopg2
+_configured_url = os.getenv("ALEMBIC_DATABASE_URL") or settings.db_url
+_sync_url = _configured_url.replace("postgresql+asyncpg", "postgresql+psycopg2")
 config.set_main_option("sqlalchemy.url", _sync_url)
 
 # Use SQLModel shared metadata so autogenerate detects all registered models.
