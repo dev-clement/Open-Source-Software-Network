@@ -11,7 +11,11 @@ sequenceDiagram
     participant Client as Signup UI
     participant Auth as Auth API
     participant Provider as OAuth Provider
+<<<<<<< HEAD
     participant Repo as Account Repository
+=======
+    participant Repo as User Repository
+>>>>>>> a3bcc91 (docs(auth): add consolidated auth architecture documentation)
     participant Token as JWT Service
 
     alt Email and password signup

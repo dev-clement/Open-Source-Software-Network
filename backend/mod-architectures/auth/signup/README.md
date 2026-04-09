@@ -50,6 +50,7 @@ flowchart TD
     E --> L
     F --> L
     L --> M[Exchange code for access token]
+<<<<<<< HEAD
     M --> N[Fetch provider_user_id, email, and username from provider]
     N --> S{OAuth identity exists for provider + provider_user_id?}
     S -->|Yes| Q[Generate JWT access token]
@@ -63,6 +64,14 @@ flowchart TD
     W --> Q
     K -->|No| P[Create user record and linked OAuth identity]
     P --> Q
+=======
+    M --> N[Fetch email and username from provider]
+    N --> K
+
+    K -->|Yes| O[Return conflict error - email already in use]
+    K -->|No| P[Create user record]
+    P --> Q[Generate JWT access token]
+>>>>>>> a3bcc91 (docs(auth): add consolidated auth architecture documentation)
     Q --> R([Return token + user profile to visitor])
 ```
 

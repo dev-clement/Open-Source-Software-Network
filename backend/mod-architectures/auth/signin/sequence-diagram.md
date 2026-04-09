@@ -12,7 +12,6 @@ sequenceDiagram
     participant Auth as Auth API
     participant Provider as OAuth Provider
     participant Repo as User Repository
-    participant OAuthRepo as OAuth Identity Repository
     participant Token as JWT Service
 
     alt Local signin (email/password)
