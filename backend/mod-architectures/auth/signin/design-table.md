@@ -27,7 +27,7 @@ Provide a deterministic decision matrix for signin outcomes so API behavior, imp
 
 | Step | Service Method |
 |---|---|
-| Validate input | `AuthSchemas.SigninRequest` |
+| Validate input | `backend/app/auth/schemas.py` request schema for signin (replace with the concrete schema name defined there) |
 | Get user by email | `UserRepository.get_by_email(email)` |
 | Verify password | `SecurityService.verify_password(plain, hashed)` |
 | Exchange OAuth code | `OAuthService.exchange_code(provider, code)` |
