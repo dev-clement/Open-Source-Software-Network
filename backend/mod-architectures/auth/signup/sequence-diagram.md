@@ -11,7 +11,7 @@ sequenceDiagram
     participant Client as Signup UI
     participant Auth as Auth API
     participant Provider as OAuth Provider
-    participant Repo as User Repository
+    participant Repo as Account Repository
     participant Token as JWT Service
 
     alt Email and password signup
