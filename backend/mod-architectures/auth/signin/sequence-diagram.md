@@ -12,6 +12,7 @@ sequenceDiagram
     participant Auth as Auth API
     participant Provider as OAuth Provider
     participant Repo as User Repository
+    participant OAuthRepo as OAuth Identity Repository
     participant Token as JWT Service
 
     alt Local signin (email/password)
@@ -39,14 +40,14 @@ sequenceDiagram
         Provider-->>Auth: Provider access token
         Auth->>Provider: Fetch provider identity and email
         Provider-->>Auth: provider_user_id, verified email
-        Auth->>Repo: get_by_provider_subject(provider, provider_user_id)
+        Auth->>OAuthRepo: get_by_provider_subject(provider, provider_user_id)
         alt Linked account found
-            Repo-->>Auth: User found
+            OAuthRepo-->>Auth: User found
             Auth->>Token: create_access_token(user_id)
             Token-->>Auth: JWT access token
             Auth-->>Client: 200 OK + token + profile
         else No link found
-            Repo-->>Auth: No user link
+            OAuthRepo-->>Auth: No user link
             Auth-->>Client: 401 Unauthorized or 202 link-required
         end
         Client-->>User: Signin result
