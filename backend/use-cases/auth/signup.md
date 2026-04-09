@@ -18,6 +18,17 @@ Allow a visitor to register an account using one of four supported methods, then
 | GitLab     | OAuth 2.0 authorization code flow        |
 | Bitbucket  | OAuth 2.0 authorization code flow        |
 
+## Provider-Specific Signup Notes
+| Provider | OAuth identity key | Email behavior | Username source |
+|---|---|---|---|
+| GitHub | `provider=github` + `provider_user_id=id` | May be missing if private; use primary verified email endpoint when needed | `login` |
+| GitLab | `provider=gitlab` + `provider_user_id=id` | Usually available from user profile; still require verified email policy | `username` |
+| Bitbucket | `provider=bitbucket` + `provider_user_id=account_id` | May require additional email API scope/endpoint | `username` or `display_name` fallback |
+
+Notes:
+- OAuth matching should first use `provider + provider_user_id`, then apply email-based linking policy only when provider email is verified.
+- If provider email is missing or unverified and policy requires verified email, return `422 Unprocessable Entity`.
+
 ## Main Flow
 
 ```mermaid
@@ -63,6 +74,8 @@ flowchart TD
 - A user registered via OAuth has no password stored.
 - Email is always the unique identifier, regardless of signup method.
 - If a visitor tries to sign up via OAuth with an email that exists under a different method, return a conflict error with a hint to use their original signup method.
+- OAuth callback must validate anti-forgery state, and PKCE when enabled for the provider client.
+- OAuth account linking policy must be explicit: `auto-link` or `confirm-link`.
 
 ## Expected Output (Success)
 ```json
@@ -93,4 +106,7 @@ flowchart TD
 | `POST` | `/auth/signup` | `{ username, email, password }` |
 | `GET` | `/auth/oauth/{provider}` | — (redirect to provider) |
 | `GET` | `/auth/oauth/{provider}/callback` | `?code=...` (provider redirect) |
+
+## Related Documents
+- [Signup Decision Table](signup-decision-table.md)
 
