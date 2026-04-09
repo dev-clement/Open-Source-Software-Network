@@ -108,5 +108,6 @@ flowchart TD
 | `GET` | `/auth/oauth/{provider}/callback` | `?code=...` (provider redirect) |
 
 ## Related Documents
-- [Signup Decision Table](signup-decision-table.md)
+- [Signup Decision Table](decision-table.md)
+- [Signup Sequence Diagram](sequence-diagram.md)
 

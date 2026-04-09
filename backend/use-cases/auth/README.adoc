@@ -31,8 +31,9 @@ The flow definitions here should remain aligned with the backend `app/auth` doma
 
 == Table of Contents
 
-* xref:signup.md[Signup Use-Case]
-* xref:signup-decision-table.md[Signup Decision Table]
+* xref:signup/README.md[Signup Use-Case]
+* xref:signup/decision-table.md[Signup Decision Table]
+* xref:signup/sequence-diagram.md[Signup Sequence Diagram]
 
 == Notes
 
