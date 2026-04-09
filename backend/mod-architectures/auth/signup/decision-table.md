@@ -24,13 +24,15 @@ Define deterministic outcomes for signup and OAuth callback branches so implemen
 - If an OAuth email collides with an existing account, follow explicit linking policy (`auto-link` or `confirm-link`).
 
 ## Suggested Service Mapping
-| Step | Service Method |
-|---|---|
-| Check local email uniqueness | `UserRepository.get_by_email(email)` |
-| Hash password (local only) | `SecurityService.hash_password(password)` |
-| Exchange OAuth code | `OAuthService.exchange_code(provider, code)` |
-| Fetch OAuth identity/profile | `OAuthService.get_profile(provider, token)` |
-| Lookup provider identity link | `OAuthRepository.get_by_provider_subject(provider, provider_user_id)` |
-| Link provider to existing user | `OAuthRepository.create_link(user_id, provider, provider_user_id)` |
-| Create user | `UserRepository.create(user_data)` |
-| Generate JWT | `SecurityService.create_access_token(user_id)` |
+Note: in `backend/app/auth` today, only `AuthService` and `UserRepository` are present. The `SecurityService`, `OAuthService`, and `OAuthRepository` references below are planned abstractions for a future refactor, not current modules.
+
+| Step | Service Method | Status / Notes |
+|---|---|---|
+| Check local email uniqueness | `UserRepository.get_by_email(email)` | Current repository |
+| Hash password (local only) | `SecurityService.hash_password(password)` | Planned component; currently handled within existing auth flow |
+| Exchange OAuth code | `OAuthService.exchange_code(provider, code)` | Planned component |
+| Fetch OAuth identity/profile | `OAuthService.get_profile(provider, token)` | Planned component |
+| Lookup provider identity link | `OAuthRepository.get_by_provider_subject(provider, provider_user_id)` | Planned component |
+| Link provider to existing user | `OAuthRepository.create_link(user_id, provider, provider_user_id)` | Planned component |
+| Create user | `UserRepository.create(user_data)` | Current repository |
+| Generate JWT | `SecurityService.create_access_token(user_id)` | Planned component; currently handled within existing auth flow |
