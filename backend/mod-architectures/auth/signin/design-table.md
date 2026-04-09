@@ -29,9 +29,11 @@ Provide a deterministic decision matrix for signin outcomes so API behavior, imp
 |---|---|
 | Validate input | `backend/app/auth/schemas.py` request schema for signin (replace with the concrete schema name defined there) |
 | Get user by email | `UserRepository.get_by_email(email)` |
-| Verify password | `SecurityService.verify_password(plain, hashed)` |
+| Verify password | `AuthService.verify_password(plain, hashed)` |
 | Exchange OAuth code | `OAuthService.exchange_code(provider, code)` |
 | Fetch provider profile | `OAuthService.get_profile(provider, token)` |
-| Find provider link | `OAuthRepository.get_by_provider_subject(provider, provider_user_id)` |
-| Link provider to user | `OAuthRepository.create_link(user_id, provider, provider_user_id)` |
-| Generate JWT | `SecurityService.create_access_token(user_id)` |
+| Find provider link | `UserRepository.get_by_provider_subject(provider, provider_user_id)` |
+| Link provider to user | `UserRepository.create_provider_link(user_id, provider, provider_user_id)` |
+| Generate JWT | `AuthService.create_access_token(user_id)` |
+
+> Note: This mapping uses the current `AuthService` / `UserRepository` naming in `backend/app/auth`. If OAuth link storage or token utilities are later split into dedicated `OAuthRepository` or `SecurityService` components, treat those as planned refactors rather than symbols that exist today.
