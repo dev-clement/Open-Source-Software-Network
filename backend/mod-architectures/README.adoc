@@ -1,0 +1,25 @@
+= Backend Use-Cases
+:toc:
+:toc-placement!:
+
+This folder contains API use-case documentation for the backend domain.
+
+toc::[]
+
+== Intent
+
+The goal of this folder is to describe expected API behavior before or alongside implementation.
+These documents act as a product and engineering alignment layer for routes, services, and repository behavior.
+
+== Scope
+
+At this stage, this folder is focused on authentication use-cases only.
+
+* xref:auth/README.adoc[Auth Use-Cases]
+
+== Documentation Principles
+
+* Keep use-case files small and focused.
+* Prefer one concern per file (overview, decision table, sequence diagram).
+* Keep route contracts, success paths, and failure behaviors explicit.
+* Update these documents whenever API behavior changes.

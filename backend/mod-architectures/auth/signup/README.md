@@ -1,0 +1,120 @@
+# Use-Case: Signup
+
+## Actor
+**Visitor** — an unauthenticated user who wants to create an account on OSSN.
+
+## Goal
+Allow a visitor to register an account using one of four supported methods, then grant them access to the application.
+
+## Preconditions
+- The visitor does not already have an account with the same email address.
+- For OAuth providers (GitHub, GitLab, Bitbucket), the visitor has an existing account with that provider.
+
+## Supported Registration Methods
+| Method     | How credentials are collected            |
+|------------|------------------------------------------|
+| Email/Password | Visitor fills in a registration form |
+| GitHub     | OAuth 2.0 authorization code flow        |
+| GitLab     | OAuth 2.0 authorization code flow        |
+| Bitbucket  | OAuth 2.0 authorization code flow        |
+
+## Provider-Specific Signup Notes
+| Provider | OAuth identity key | Email behavior | Username source |
+|---|---|---|---|
+| GitHub | `provider=github` + `provider_user_id=id` | May be missing if private; use primary verified email endpoint when needed | `login` |
+| GitLab | `provider=gitlab` + `provider_user_id=id` | Usually available from user profile; still require verified email policy | `username` |
+| Bitbucket | `provider=bitbucket` + `provider_user_id=account_id` | May require additional email API scope/endpoint | `username` or `display_name` fallback |
+
+Notes:
+- OAuth matching should first use `provider + provider_user_id`, then apply email-based linking policy only when provider email is verified.
+- If provider email is missing or unverified and policy requires verified email, return `422 Unprocessable Entity`.
+
+## Main Flow
+
+```mermaid
+flowchart TD
+    A([Visitor lands on signup page]) --> B{Choose signup method}
+
+    B -->|Email / Password| C[Submit username, email, password]
+    B -->|GitHub| D[Redirect to GitHub OAuth]
+    B -->|GitLab| E[Redirect to GitLab OAuth]
+    B -->|Bitbucket| F[Redirect to Bitbucket OAuth]
+
+    C --> G[Validate input fields]
+    G --> H{Validation passes?}
+    H -->|No| I[Return validation error to visitor]
+    H -->|Yes| J[Hash password]
+    J --> K{Email already registered?}
+
+    D --> L[Provider returns authorization code]
+    E --> L
+    F --> L
+    L --> M[Exchange code for access token]
+    M --> N[Fetch provider_user_id, email, and username from provider]
+    N --> S{OAuth identity exists for provider + provider_user_id?}
+    S -->|Yes| Q[Generate JWT access token]
+    S -->|No| T{Verified provider email available when required?}
+    T -->|No| U[Return 422 Unprocessable Entity]
+    T -->|Yes| K
+
+    K -->|Yes| V{Explicit link or confirm-link allowed?}
+    V -->|No| O[Return conflict error - email already in use]
+    V -->|Yes| W[Link OAuth identity to existing user]
+    W --> Q
+    K -->|No| P[Create user record and linked OAuth identity]
+    P --> Q
+    Q --> R([Return token + user profile to visitor])
+```
+
+## Alternative Flows
+
+| Scenario | Outcome |
+|---|---|
+| Validation fails (missing field, bad email format, short password) | Return `422 Unprocessable Entity` with field-level errors |
+| Email already exists (any method) | Return `409 Conflict` |
+| OAuth provider denies access or user cancels | Return `401 Unauthorized` |
+| OAuth provider returns no email (e.g. private GitHub email) | Return `422 Unprocessable Entity` — email required |
+| Provider API call fails | Return `502 Bad Gateway` |
+
+## Business Rules
+- Passwords must be hashed before storage; plain-text passwords are never persisted.
+- A user registered via OAuth has no password stored.
+- Email is always the unique identifier, regardless of signup method.
+- If a visitor tries to sign up via OAuth with an email that exists under a different method, return a conflict error with a hint to use their original signup method.
+- OAuth callback must validate anti-forgery state, and PKCE when enabled for the provider client.
+- OAuth account linking policy must be explicit: `auto-link` or `confirm-link`.
+
+## Expected Output (Success)
+```json
+{
+  "access_token": "<JWT>",
+  "token_type": "bearer",
+  "user": {
+    "id": 1,
+    "username": "alice",
+    "email": "alice@example.com"
+  }
+}
+```
+
+## Service Mapping
+| Step | Service Method |
+|---|---|
+| Hash password | `SecurityService.hash_password(password)` |
+| Check email uniqueness | `UserRepository.get_by_email(email)` |
+| Create user | `UserRepository.create(user_data)` |
+| Exchange OAuth code | `OAuthService.exchange_code(provider, code)` |
+| Fetch provider profile | `OAuthService.get_profile(provider, token)` |
+| Generate JWT | `SecurityService.create_access_token(user_id)` |
+
+## API Endpoint
+| Method | Path | Request Body |
+|---|---|---|
+| `POST` | `/auth/signup` | `{ username, email, password }` |
+| `GET` | `/auth/oauth/{provider}` | — (redirect to provider) |
+| `GET` | `/auth/oauth/{provider}/callback` | `?code=...` (provider redirect) |
+
+## Related Documents
+- [Signup Decision Table](decision-table.md)
+- [Signup Sequence Diagram](sequence-diagram.md)
+

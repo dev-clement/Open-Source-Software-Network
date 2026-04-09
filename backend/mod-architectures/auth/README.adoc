@@ -1,0 +1,48 @@
+= Auth Use-Cases
+:toc:
+:toc-placement!:
+
+This folder documents the **authentication route architecture** for the OSSN backend.
+It defines how auth-related behaviors should work before full implementation in the `app/auth` package.
+
+toc::[]
+
+== Purpose
+
+The goal of this folder is to capture business and API behavior for authentication flows in a clear, implementation-ready format.
+
+These documents are the source of truth for:
+
+* API route design (`/auth/...`)
+* service-layer behavior in `app/auth/service.py`
+* repository interactions in `app/auth/repository.py`
+* validation and error handling expectations
+
+== Route Architecture Scope
+
+The auth use-cases describe the expected route behavior for:
+
+* `POST /auth/signup`
+* `POST /auth/login`
+* `POST /auth/logout`
+* OAuth-based registration/login callbacks (GitHub, GitLab, Bitbucket)
+
+The flow definitions here should remain aligned with the backend `app/auth` domain package.
+
+== Table of Contents
+
+* xref:signup/README.md[Signup Use-Case]
+* xref:signup/decision-table.md[Signup Decision Table]
+* xref:signup/sequence-diagram.md[Signup Sequence Diagram]
+* xref:signin/README.md[Signin Use-Case]
+* xref:signin/decision-table.md[Signin Decision Table]
+* xref:signin/sequence-diagram.md[Signin Sequence Diagram]
+* xref:signout/README.md[Signout Use-Case]
+* xref:signout/decision-table.md[Signout Decision Table]
+* xref:signout/sequence-diagram.md[Signout Sequence Diagram]
+
+== Notes
+
+* Add one folder per auth use-case (e.g., `signin/`, `signout/`, `oauth-callback/`), with separate files for the overview, decision table, and sequence diagram.
+* Each use-case folder should document actor, preconditions, main flow, and alternative flows in the overview, with supporting decision-table and sequence-diagram files.
+* Keep this folder focused on behavior and contracts; implementation details belong in backend code.
