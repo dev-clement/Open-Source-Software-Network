@@ -43,6 +43,6 @@ The flow definitions here should remain aligned with the backend `app/auth` doma
 
 == Notes
 
-* Add one file per auth use-case (e.g., `signin.md`, `logout.md`, `oauth-callback.md`).
-* Each use-case should include actor, preconditions, main flow, alternative flows, and a Mermaid flowchart.
+* Add one folder per auth use-case (e.g., `signin/`, `signout/`, `oauth-callback/`), with separate files for the overview, decision table, and sequence diagram.
+* Each use-case folder should document actor, preconditions, main flow, and alternative flows in the overview, with supporting decision-table and sequence-diagram files.
 * Keep this folder focused on behavior and contracts; implementation details belong in backend code.
