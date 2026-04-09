@@ -37,6 +37,9 @@ The flow definitions here should remain aligned with the backend `app/auth` doma
 * xref:signin/README.md[Signin Use-Case]
 * xref:signin/design-table.md[Signin Decision Table]
 * xref:signin/sequence-diagram.md[Signin Sequence Diagram]
+* xref:signout/README.md[Signout Use-Case]
+* xref:signout/decision-table.md[Signout Decision Table]
+* xref:signout/sequence-diagram.md[Signout Sequence Diagram]
 
 == Notes
 
