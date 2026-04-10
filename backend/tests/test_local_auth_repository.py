@@ -275,3 +275,240 @@ def test_sql_user_repository_update_persists_and_returns_updated_user(db_engine)
             assert fetched_user.email == created_user.email
 
     asyncio.run(run_test())
+
+
+def test_sql_user_repository_delete_by_email_deletes_existing_user(db_engine):
+    async def run_test():
+        async with db_engine.async_session() as session:
+            repository = SqlUserRepository(session)
+            payload = UserCreate(
+                username="alice",
+                email="alice@example.com",
+                password="hashed-password",
+            )
+
+            await repository.create(payload)
+            is_deleted = await repository.delete_by_email(payload.email)
+            fetched_user = await repository.get_by_email(payload.email)
+
+            assert is_deleted is True
+            assert fetched_user is None
+
+    asyncio.run(run_test())
+
+
+def test_sql_user_repository_delete_by_id_deletes_existing_user(db_engine):
+    async def run_test():
+        async with db_engine.async_session() as session:
+            repository = SqlUserRepository(session)
+            payload = UserCreate(
+                username="alice",
+                email="alice@example.com",
+                password="hashed-password",
+            )
+
+            created_user = await repository.create(payload)
+            is_deleted = await repository.delete_by_id(created_user.id)
+            fetched_user = await repository.get_by_id(created_user.id)
+
+            assert is_deleted is True
+            assert fetched_user is None
+
+    asyncio.run(run_test())
+
+
+def test_sql_user_repository_delete_by_id_returns_false_when_user_does_not_exist(db_engine):
+    async def run_test():
+        async with db_engine.async_session() as session:
+            repository = SqlUserRepository(session)
+            is_deleted = await repository.delete_by_id(999)
+
+            assert is_deleted is False
+
+    asyncio.run(run_test())
+
+
+def test_sql_user_repository_delete_by_id_returns_false_for_malformed_id_input(db_engine):
+    async def run_test():
+        async with db_engine.async_session() as session:
+            repository = SqlUserRepository(session)
+            is_deleted = await repository.delete_by_id("not-an-id")
+
+            assert is_deleted is False
+
+    asyncio.run(run_test())
+
+
+def test_sql_user_repository_delete_by_email_returns_false_when_user_does_not_exist(db_engine):
+    async def run_test():
+        async with db_engine.async_session() as session:
+            repository = SqlUserRepository(session)
+            is_deleted = await repository.delete_by_email("missing@example.com")
+
+            assert is_deleted is False
+
+    asyncio.run(run_test())
+
+
+def test_sql_user_repository_delete_by_email_returns_false_for_malformed_email_input(db_engine):
+    async def run_test():
+        async with db_engine.async_session() as session:
+            repository = SqlUserRepository(session)
+            is_deleted = await repository.delete_by_email("not-an-email")
+
+            assert is_deleted is False
+
+    asyncio.run(run_test())
+
+
+@pytest.mark.parametrize(
+    "username,email,password",
+    [
+        ("user01", "user01@example.com", "hash-01"),
+        ("user02", "user02@example.com", "hash-02"),
+        ("user03", "user03@example.com", "hash-03"),
+        ("user04", "user04@example.com", "hash-04"),
+        ("user05", "user05@example.com", "hash-05"),
+        ("user06", "user06@example.com", "hash-06"),
+        ("user07", "user07@example.com", "hash-07"),
+        ("user08", "user08@example.com", "hash-08"),
+        ("user09", "user09@example.com", "hash-09"),
+        ("user10", "user10@example.com", "hash-10"),
+    ],
+)
+def test_sql_user_repository_create_persists_various_users(db_engine, username, email, password):
+    async def run_test():
+        async with db_engine.async_session() as session:
+            repository = SqlUserRepository(session)
+            payload = UserCreate(username=username, email=email, password=password)
+
+            created_user = await repository.create(payload)
+            fetched_user = await repository.get_by_id(created_user.id)
+
+            assert created_user.id is not None
+            assert created_user.username == username
+            assert created_user.email == email
+            assert fetched_user is not None
+            assert fetched_user.username == username
+            assert fetched_user.email == email
+
+    asyncio.run(run_test())
+
+
+@pytest.mark.parametrize(
+    "username,email,password",
+    [
+        ("lookup01", "lookup01@example.com", "hash-a1"),
+        ("lookup02", "lookup02@example.com", "hash-a2"),
+        ("lookup03", "lookup03@example.com", "hash-a3"),
+        ("lookup04", "lookup04@example.com", "hash-a4"),
+        ("lookup05", "lookup05@example.com", "hash-a5"),
+        ("lookup06", "lookup06@example.com", "hash-a6"),
+    ],
+)
+def test_sql_user_repository_get_by_email_roundtrip_multiple_payloads(db_engine, username, email, password):
+    async def run_test():
+        async with db_engine.async_session() as session:
+            repository = SqlUserRepository(session)
+            payload = UserCreate(username=username, email=email, password=password)
+
+            created_user = await repository.create(payload)
+            fetched_user = await repository.get_by_email(email)
+
+            assert fetched_user is not None
+            assert fetched_user.id == created_user.id
+            assert fetched_user.username == username
+            assert fetched_user.email == email
+
+    asyncio.run(run_test())
+
+
+@pytest.mark.parametrize(
+    "missing_email",
+    [
+        "ghost01@example.com",
+        "ghost02@example.com",
+        "ghost03@example.com",
+        "ghost04@example.com",
+    ],
+)
+def test_sql_user_repository_get_by_email_returns_none_for_multiple_missing_emails(db_engine, missing_email):
+    async def run_test():
+        async with db_engine.async_session() as session:
+            repository = SqlUserRepository(session)
+            fetched_user = await repository.get_by_email(missing_email)
+
+            assert fetched_user is None
+
+    asyncio.run(run_test())
+
+
+@pytest.mark.parametrize(
+    "username,email,password",
+    [
+        ("byid01", "byid01@example.com", "hash-b1"),
+        ("byid02", "byid02@example.com", "hash-b2"),
+        ("byid03", "byid03@example.com", "hash-b3"),
+        ("byid04", "byid04@example.com", "hash-b4"),
+        ("byid05", "byid05@example.com", "hash-b5"),
+    ],
+)
+def test_sql_user_repository_get_by_id_roundtrip_multiple_payloads(db_engine, username, email, password):
+    async def run_test():
+        async with db_engine.async_session() as session:
+            repository = SqlUserRepository(session)
+            payload = UserCreate(username=username, email=email, password=password)
+
+            created_user = await repository.create(payload)
+            fetched_user = await repository.get_by_id(created_user.id)
+
+            assert fetched_user is not None
+            assert fetched_user.id == created_user.id
+            assert fetched_user.username == username
+            assert fetched_user.email == email
+
+    asyncio.run(run_test())
+
+
+@pytest.mark.parametrize(
+    "field_name,field_value",
+    [
+        ("username", "updated-user-a"),
+        ("username", "updated-user-b"),
+        ("email", "updated-a@example.com"),
+        ("bio", "Updated bio one"),
+        ("bio", "Updated bio two"),
+        ("github_page", "https://github.com/updated-user"),
+    ],
+)
+def test_sql_user_repository_update_persists_each_supported_field(db_engine, field_name, field_value):
+    async def run_test():
+        async with db_engine.async_session() as session:
+            repository = SqlUserRepository(session)
+            payload = UserCreate(
+                username="base-user",
+                email="base-user@example.com",
+                password="base-hash",
+            )
+
+            created_user = await repository.create(payload)
+            updated_user = await repository.update(created_user.id, **{field_name: field_value})
+            fetched_user = await repository.get_by_id(created_user.id)
+
+            assert updated_user is not None
+            assert fetched_user is not None
+
+            if field_name == "username":
+                assert updated_user.username == field_value
+                assert fetched_user.username == field_value
+            elif field_name == "email":
+                assert updated_user.email == field_value
+                assert fetched_user.email == field_value
+            elif field_name == "bio":
+                assert updated_user.bio == field_value
+                assert fetched_user.bio == field_value
+            elif field_name == "github_page":
+                assert str(updated_user.github_page) == field_value
+                assert str(fetched_user.github_page) == field_value
+
+    asyncio.run(run_test())

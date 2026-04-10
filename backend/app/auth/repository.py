@@ -82,6 +82,24 @@ class UserRepository(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    async def delete_by_id(self, user_id: int) -> bool:
+        """Delete a user by primary key.
+
+        :param user_id: Database identifier of the user to delete.
+        :return: ``True`` when a user was deleted, otherwise ``False``.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def delete_by_email(self, email: str) -> bool:
+        """Delete a user by unique email address.
+
+        :param email: Unique email address of the user to delete.
+        :return: ``True`` when a user was deleted, otherwise ``False``.
+        """
+        raise NotImplementedError
+
 
 class SqlUserRepository(UserRepository):
     """Concrete ``UserRepository`` backed by an asynchronous SQLAlchemy session.
@@ -181,3 +199,38 @@ class SqlUserRepository(UserRepository):
         await self.session.commit()
         await self.session.refresh(user_model)
         return User.model_validate(user_model)
+
+    async def delete_by_id(self, user_id: int) -> bool:
+        """Delete a user by primary key when it exists.
+
+        The repository returns a boolean rather than raising when the user is
+        missing so callers can handle delete idempotently.
+
+        :param user_id: Primary key of the user row to delete.
+        :return: ``True`` when a matching row was deleted, otherwise ``False``.
+        """
+        statement = select(UserModel).where(UserModel.id == user_id)
+        result = await self.session.execute(statement)
+        user_model = result.scalar_one_or_none()
+        if user_model is None:
+            return False
+
+        await self.session.delete(user_model)
+        await self.session.commit()
+        return True
+
+    async def delete_by_email(self, email: str) -> bool:
+        """Delete a user by unique email address when it exists.
+
+        :param email: Unique email address of the user row to delete.
+        :return: ``True`` when a matching row was deleted, otherwise ``False``.
+        """
+        statement = select(UserModel).where(UserModel.email == email)
+        result = await self.session.execute(statement)
+        user_model = result.scalar_one_or_none()
+        if user_model is None:
+            return False
+
+        await self.session.delete(user_model)
+        await self.session.commit()
+        return True
