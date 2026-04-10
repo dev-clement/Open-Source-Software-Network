@@ -195,7 +195,7 @@ class SqlUserRepository(UserRepository):
             return None
 
         for field_name, field_value in kwargs.items():
-            if not hasattr(user_model, field_name):
+            if field_name not in UserModel.__table__.columns:
                 raise ValueError(f"Unknown user field: {field_name}")
             setattr(user_model, field_name, field_value)
 
@@ -223,8 +223,12 @@ class SqlUserRepository(UserRepository):
         if user_model is None:
             return False
 
-        await self.session.delete(user_model)
-        await self.session.commit()
+        try:
+            await self.session.delete(user_model)
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            raise
         return True
 
     async def delete_by_email(self, email: str) -> bool:
@@ -239,6 +243,10 @@ class SqlUserRepository(UserRepository):
         if user_model is None:
             return False
 
-        await self.session.delete(user_model)
-        await self.session.commit()
+        try:
+            await self.session.delete(user_model)
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            raise
         return True

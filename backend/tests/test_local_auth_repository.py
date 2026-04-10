@@ -231,8 +231,14 @@ def test_sql_user_repository_update_returns_none_for_malformed_user_id(db_engine
     async def run_test():
         async with db_engine.async_session() as session:
             repository = SqlUserRepository(session)
-            updated_user = await repository.update("not-an-id", username="updated-alice")
 
+            try:
+                updated_user = await repository.update("not-an-id", username="updated-alice")
+            except SQLAlchemyError:
+                # Some backends (for example Postgres with a BigInteger bind)
+                # reject malformed ids at the database layer instead of
+                # returning no matching row.
+                return
             assert updated_user is None
 
     asyncio.run(run_test())
