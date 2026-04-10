@@ -132,8 +132,12 @@ class SqlUserRepository(UserRepository):
         """
         user_model = UserModel(**user_data.model_dump())
         self.session.add(user_model)
-        await self.session.commit()
-        await self.session.refresh(user_model)
+        try:
+            await self.session.commit()
+            await self.session.refresh(user_model)
+        except Exception as e:
+            await self.session.rollback()
+            raise e
         return User.model_validate(user_model)
 
     async def get_by_email(self, email: str) -> Optional[User]:
@@ -196,8 +200,12 @@ class SqlUserRepository(UserRepository):
             setattr(user_model, field_name, field_value)
 
         self.session.add(user_model)
-        await self.session.commit()
-        await self.session.refresh(user_model)
+        try:
+            await self.session.commit()
+            await self.session.refresh(user_model)
+        except Exception as e:
+            await self.session.rollback()
+            raise e
         return User.model_validate(user_model)
 
     async def delete_by_id(self, user_id: int) -> bool:
