@@ -191,7 +191,7 @@ class SqlUserRepository(UserRepository):
             return None
 
         for field_name, field_value in kwargs.items():
-            if not hasattr(user_model, field_name):
+            if field_name not in UserModel.__table__.columns:
                 raise ValueError(f"Unknown user field: {field_name}")
             setattr(user_model, field_name, field_value)
 
