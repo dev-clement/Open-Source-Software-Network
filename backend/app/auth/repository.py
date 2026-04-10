@@ -215,8 +215,12 @@ class SqlUserRepository(UserRepository):
         if user_model is None:
             return False
 
-        await self.session.delete(user_model)
-        await self.session.commit()
+        try:
+            await self.session.delete(user_model)
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            raise
         return True
 
     async def delete_by_email(self, email: str) -> bool:
@@ -231,6 +235,10 @@ class SqlUserRepository(UserRepository):
         if user_model is None:
             return False
 
-        await self.session.delete(user_model)
-        await self.session.commit()
+        try:
+            await self.session.delete(user_model)
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            raise
         return True
