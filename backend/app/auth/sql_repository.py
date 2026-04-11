@@ -44,9 +44,9 @@ class SqlUserRepository(UserRepository):
         try:
             await self.session.commit()
             await self.session.refresh(user_model)
-        except Exception as e:
+        except Exception:
             await self.session.rollback()
-            raise e
+            raise
         return User.model_validate(user_model)
 
     async def get_by_email(self, email: str) -> Optional[User]:
@@ -122,9 +122,9 @@ class SqlUserRepository(UserRepository):
         try:
             await self.session.commit()
             await self.session.refresh(user_model)
-        except Exception as e:
+        except Exception:
             await self.session.rollback()
-            raise e
+            raise
         return User.model_validate(user_model)
 
     async def delete_by_id(self, user_id: int) -> bool:
