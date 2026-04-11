@@ -1,0 +1,65 @@
+= Changelog
+:toc:
+:toc-placement!:
+
+This file tracks notable changes made to OSSN.
+
+toc::[]
+
+== 2026-04-11
+
+=== Added
+
+* Added Python docstrings to all classes and methods in `backend/app/auth/service.py` using a consistent `:param:` / `:return:` format.
+* Created `backend/app/auth/auth_local_service.py` containing the concrete `AuthLocalService` implementation extracted from `service.py`.
+* Created `backend/app/auth/sql_repository.py` containing the concrete `SqlUserRepository` implementation extracted from `repository.py`.
+* **Opened two pull-requests:**
+  ** PR #23 — `feat(auth): implement and split local authentication service` (merged)
+  ** PR #24 — `refactor(auth): move SqlUserRepository to sql_repository module` (open, related to issue #21)
+
+=== Changed
+
+* `backend/app/auth/service.py` now contains only the abstract `AuthService` base class (ABC).
+  ** Removed `AuthLocalService` to its own dedicated module.
+  ** Removed SQL-specific imports (`hashlib`, `hmac`, `os`) from the base class module.
+* `backend/app/auth/repository.py` now contains only the abstract `UserRepository` base class (ABC).
+  ** Removed `SqlUserRepository` to its own dedicated module.
+  ** Removed SQL-specific imports (`AsyncSession`, `select`, SQLModel models) from the base class module.
+* Updated `backend/tests/test_auth_local_service.py` to import `AuthLocalService` from `app.auth.auth_local_service` and `SqlUserRepository` from `app.auth.sql_repository`.
+* Updated `backend/tests/test_local_auth_repository.py` to import `SqlUserRepository` from `app.auth.sql_repository`.
+* Fixed imports in `backend/app/auth/auth_local_service.py` to use absolute package paths (`app.auth.*`) instead of relative bare imports.
+
+=== Why This Change Was Needed
+
+* **Single-responsibility at module level:**
+  ** `service.py` and `repository.py` were mixing the abstract contract with a concrete implementation in the same file.
+  ** Splitting each pair into interface/implementation modules makes each file's responsibility immediately clear.
+* **Open/Closed Principle (OCP) alignment:**
+  ** Future providers (`GheAuthService`, `GitlabAuthService`, `BitbucketAuthService`) and future repository backends can be added as new modules without touching the base contract files.
+  ** The auth layer is now open for extension and closed for modification at the contract level.
+* **Preparedness for multiple auth providers:**
+  ** The project roadmap includes GitHub Enterprise, GitLab, and Bitbucket authentication providers.
+  ** Having the ABC isolated in its own module allows each provider to be implemented independently in a dedicated file, following the same pattern as `auth_local_service.py`.
+* **Docstrings added first to establish a documentation baseline:**
+  ** All public and private methods now carry `:param:` / `:return:` annotations to improve maintainability and onboarding for future contributors.
+
+=== Impact
+
+* No functional behavior change — all existing tests continue to pass (118 tests passing after refactor).
+* Import paths for `AuthLocalService` and `SqlUserRepository` have changed; any future code must use the new module paths.
+* The auth layer is now structured to scale cleanly as new providers and repository backends are added.
+* Each concrete service and repository can be mocked, faked, or swapped independently in tests without depending on the full module chain.
+
+=== Notes
+
+* **Architecture decision — contracts stay domain-local for now:**
+  ** The question of moving `UserRepository` and `AuthService` ABCs to the `shared` package was evaluated and intentionally deferred.
+  ** `projects` and `contributions` domains have not yet been implemented; their repository and service contracts may differ significantly.
+  ** The recommended approach is to build each domain with its own local interface first, then extract proven common abstractions to `shared` only once duplication across at least two domains is confirmed.
+* **Module naming conventions established for future providers:**
+  ** Service implementations: `{provider}_service.py` (e.g., `auth_local_service.py`, `auth_github_service.py`)
+  ** Repository implementations: `sql_repository.py` for SQL, future backends would follow `{backend}_repository.py`
+* `raise e` vs bare `raise` inconsistency identified in `sql_repository.py` (`create` and `update` methods) — bare `raise` is preferred to preserve the full traceback chain from the original call site; can be addressed in a follow-up.
+* The `repository.py` module-level docstring still references SQLModel implementations — can be updated in a follow-up once the SQL repository is fully settled in its new module.
+* PR #23 was linked to issue #21 using `Related to #21` (non-closing reference).
+* PR #24 was also linked to issue #21 using `Related to #21` (non-closing reference).
