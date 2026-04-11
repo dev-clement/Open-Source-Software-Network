@@ -5,9 +5,9 @@ from typing import Optional
 import pytest
 from sqlalchemy import event, text
 
+from app.auth.auth_local_service import AuthLocalService
 from app.auth.repository import SqlUserRepository, UserRepository
 from app.auth.schemas import User, UserCreate
-from app.auth.service import AuthLocalService
 from app.db.models import User as UserModel
 from app.db.session import DatabaseEngine
 
