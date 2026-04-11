@@ -11,44 +11,47 @@ Responsibilities:
 from abc import ABC, abstractmethod
 from typing import Optional
 
+from app.auth.repository import UserRepository
 from app.auth.schemas import UserCreate, User
 
 
-class AuthService:
-    """High-level authentication operations."""
+class AuthService(ABC):
+    """Define the contract for high-level authentication operations."""
     
     def __init__(self):
+        """Initialize the authentication service base class."""
         # Will be injected with UserRepository in __init__
         pass
     
+    @abstractmethod
     async def register(self, user_data: UserCreate) -> User:
         """
-        Register a new user.
-        
-        Args:
-            user_data: UserCreate schema with username, email, password
-            
-        Returns:
-            User: The created user object
-            
-        Raises:
-            ValueError: If email already exists
+        Register a new user account.
+
+        :param user_data: User creation payload containing username, email,
+            and plain-text password.
+        :return: The created user entity.
         """
         raise NotImplementedError
     
+    @abstractmethod
     async def authenticate(self, email: str, password: str) -> Optional[User]:
         """
         Authenticate user by email and password.
-        
-        Args:
-            email: User email
-            password: Plain-text password
-            
-        Returns:
-            User object if credentials are valid, None otherwise
+
+        :param email: Email address used to identify the user account.
+        :param password: Plain-text password provided by the user.
+        :return: The authenticated user if credentials are valid; otherwise
+            None.
         """
         raise NotImplementedError
     
+    @abstractmethod
     async def get_user_by_id(self, user_id: int) -> Optional[User]:
-        """Get user by ID."""
+        """
+        Retrieve a user by its unique identifier.
+
+        :param user_id: Unique identifier of the user.
+        :return: The matching user if found; otherwise None.
+        """
         raise NotImplementedError

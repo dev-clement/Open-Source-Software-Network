@@ -55,6 +55,18 @@ class UserRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    async def get_password_hash_by_email(self, email: str) -> Optional[str]:
+        """Return the persisted password hash for the given email.
+
+        This method is intended for local-auth credential verification in the
+        service layer. It returns ``None`` when no user exists for the email.
+
+        :param email: Unique email address used to find the credential record.
+        :return: Password hash string when found, otherwise ``None``.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     async def get_by_id(self, user_id: int) -> Optional[User]:
         """Return a user by primary key, or ``None`` when no row exists.
 
@@ -156,6 +168,16 @@ class SqlUserRepository(UserRepository):
         if user_model is None:
             return None
         return User.model_validate(user_model)
+
+    async def get_password_hash_by_email(self, email: str) -> Optional[str]:
+        """Retrieve a user's password hash using their unique email.
+
+        :param email: Unique email address to search for in persistent storage.
+        :return: Stored password hash string when found, otherwise ``None``.
+        """
+        statement = select(UserModel.password).where(UserModel.email == email)
+        result = await self.session.execute(statement)
+        return result.scalar_one_or_none()
 
     async def get_by_id(self, user_id: int) -> Optional[User]:
         """Retrieve a single user by primary key.
