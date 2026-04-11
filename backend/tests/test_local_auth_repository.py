@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import event, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from app.auth.repository import SqlUserRepository
+from app.auth.sql_repository import SqlUserRepository
 from app.auth.schemas import UserCreate
 from app.db.models import User as UserModel
 from app.db.session import DatabaseEngine
