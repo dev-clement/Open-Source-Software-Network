@@ -6,8 +6,9 @@ import pytest
 from sqlalchemy import event, text
 
 from app.auth.auth_local_service import AuthLocalService
-from app.auth.repository import SqlUserRepository, UserRepository
+from app.auth.repository import UserRepository
 from app.auth.schemas import User, UserCreate
+from app.auth.sql_repository import SqlUserRepository
 from app.db.models import User as UserModel
 from app.db.session import DatabaseEngine
 
