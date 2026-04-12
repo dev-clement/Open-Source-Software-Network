@@ -73,3 +73,25 @@ class User(UserBase):
     id: BigIntId
     created_at: datetime
     updated_at: datetime
+
+
+class LoginRequest(BaseModel):
+    """Input schema for local-auth login.
+
+    Carries credentials as a validated request body to avoid exposing
+    sensitive values in query parameters or URL paths.
+    """
+
+    email: EmailStr
+    password: UserString
+
+
+class TokenResponse(BaseModel):
+    """Output schema returned upon successful authentication.
+
+    Follows the OAuth2 bearer token response convention so clients can
+    treat the ``access_token`` uniformly regardless of the auth backend.
+    """
+
+    access_token: str
+    token_type: str = "bearer"

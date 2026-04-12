@@ -19,6 +19,7 @@ python-dotenv = ">=1.0.1"
 pytest = ">=9.0.2,<10"
 aiosqlite = ">=0.22.1,<0.23"
 alembic = ">=1.18.4,<2"
+pyjwt = ">=2.8.0,<3"
 
 [tasks]
 # Task to start the development server with hot reload
