@@ -5,14 +5,17 @@ All routes delegate to AuthService for business logic.
 """
 
 from typing import AsyncGenerator
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+import jwt
 
 from app.auth.auth_local_service import AuthLocalService
 from app.auth.service import AuthService
 from app.auth.sql_repository import SqlUserRepository
-from app.auth.schemas import UserCreate, User
+from app.auth.schemas import LoginRequest, TokenResponse, UserCreate, User
+from app.auth.helper import create_access_token
 from app.core.settings import settings
 from app.db.session import DatabaseEngine
 
@@ -72,16 +75,36 @@ async def signup(
         ) from exc
 
 
-@router.post("/login")
-async def login(email: str, password: str):
+@router.post("/login", response_model=TokenResponse)
+async def login(
+    credentials: LoginRequest,
+    auth_service: AuthService = Depends(get_auth_service),
+) -> TokenResponse:
     """
     Authenticate user and return JWT access token.
-    
-    Returns:
-    - **access_token**: JWT token valid for subsequent requests
-    - **token_type**: "bearer"
+
+    The endpoint verifies the supplied credentials against the local-auth
+    backend and, on success, issues a signed JWT access token the client
+    can use for subsequent authenticated requests.
+
+    :param credentials: Login payload containing the user's email address
+        and plain-text password.
+    :param auth_service: Authentication service responsible for verifying
+        credentials against the stored password hash.
+    :return: A bearer token response containing the signed JWT access token
+        and its type.
+    :raises HTTPException: Returns ``401 Unauthorized`` when the supplied
+        credentials are invalid or the email does not exist.
     """
-    raise NotImplementedError
+    user = await auth_service.authenticate(credentials.email, credentials.password)
+    access_token = create_access_token(user.id) if user else None
+    if access_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return TokenResponse(access_token=access_token)
 
 
 @router.post("/logout")

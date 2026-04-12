@@ -71,6 +71,10 @@ class PSQLSettings(DBSettings):
     POSTGRES_DB: str
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
+    JWT_CURRENT_SECRET: str = "changeme-replace-this-key-in-production-env"
+    JWT_PREVIOUS_SECRETS: str = ""
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRATION_MINUTES: int = 30
 
     @property
     def db_url(self) -> str:
