@@ -8,6 +8,7 @@ from typing import AsyncGenerator
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 import jwt
 
@@ -15,12 +16,15 @@ from app.auth.auth_local_service import AuthLocalService
 from app.auth.service import AuthService
 from app.auth.sql_repository import SqlUserRepository
 from app.auth.schemas import LoginRequest, TokenResponse, UserCreate, User
-from app.auth.helper import create_access_token
+from app.auth.helper import create_access_token, revoke_access_token
 from app.core.settings import settings
 from app.db.session import DatabaseEngine
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 db_engine = DatabaseEngine(database_url=settings.db_url)
@@ -108,13 +112,38 @@ async def login(
 
 
 @router.post("/logout")
-async def logout():
+async def logout(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> dict[str, str]:
     """
-    Logout (stateless: client discards token).
-    
-    For stateful logout with token blacklist, further implementation needed.
+    Logout the current JWT-authenticated user session.
+
+    This endpoint reads the bearer token from the ``Authorization`` header,
+    validates it, and revokes its ``jti`` in an in-memory denylist so the
+    token cannot be accepted again by revocation-aware checks.
+
+    :param credentials: Parsed HTTP bearer authorization credentials.
+    :return: Confirmation message indicating the logout operation succeeded.
+    :raises HTTPException: Returns ``401 Unauthorized`` when the bearer token
+        is missing, malformed, or invalid.
     """
-    raise NotImplementedError
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    try:
+        revoke_access_token(credentials.credentials)
+    except jwt.InvalidTokenError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid access token",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+
+    return {"detail": "Logged out successfully"}
 
 
 @router.get("/me", response_model=User)
