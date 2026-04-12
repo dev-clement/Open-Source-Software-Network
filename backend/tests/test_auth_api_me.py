@@ -2,6 +2,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import fastapi
 import jwt
 import pytest
 from fastapi import FastAPI, HTTPException
