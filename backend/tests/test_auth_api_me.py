@@ -4,7 +4,7 @@ from typing import Optional
 
 import jwt
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.testclient import TestClient
 
@@ -352,7 +352,7 @@ def test_get_current_user_route_function_raises_401_for_invalid_token():
         fake_service = FakeAuthService(user_to_return=_build_user(user_id=5))
         credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="invalid")
 
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             await auth_api.get_current_user(credentials, fake_service)
 
         assert exc_info.value.status_code == 401
@@ -483,7 +483,7 @@ def test_get_current_user_route_function_raises_401_when_credentials_missing():
     async def run_test():
         fake_service = FakeAuthService(user_to_return=_build_user(user_id=2))
 
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             await auth_api.get_current_user(None, fake_service)
 
         assert exc_info.value.status_code == 401
@@ -499,7 +499,7 @@ def test_get_current_user_route_function_raises_401_for_wrong_scheme():
         fake_service = FakeAuthService(user_to_return=_build_user(user_id=2))
         credentials = HTTPAuthorizationCredentials(scheme="Basic", credentials="abc")
 
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             await auth_api.get_current_user(credentials, fake_service)
 
         assert exc_info.value.status_code == 401
@@ -516,7 +516,7 @@ def test_get_current_user_route_function_raises_404_when_user_missing():
         token = create_access_token(user_id=404)
         credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
 
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             await auth_api.get_current_user(credentials, fake_service)
 
         assert exc_info.value.status_code == 404
