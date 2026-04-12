@@ -181,7 +181,11 @@ async def get_current_user(
         payload = decode_access_token(credentials.credentials)
         token_jti = payload.get("jti")
         if not isinstance(token_jti, str) or not token_jti:
-            raise ValueError("Missing or invalid jti claim")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid access token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         if is_jti_revoked(token_jti):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
