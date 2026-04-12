@@ -19,7 +19,7 @@ from app.auth.schemas import LoginRequest, TokenResponse, UserCreate, User
 from app.auth.helper import (
     create_access_token,
     decode_access_token,
-    is_access_token_revoked,
+    is_jti_revoked,
     revoke_access_token,
 )
 from app.core.settings import settings
@@ -178,14 +178,16 @@ async def get_current_user(
         )
 
     try:
-        if is_access_token_revoked(credentials.credentials):
+        payload = decode_access_token(credentials.credentials)
+        token_jti = payload.get("jti")
+        if not isinstance(token_jti, str) or not token_jti:
+            raise ValueError("Missing or invalid jti claim")
+        if is_jti_revoked(token_jti):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid access token",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-
-        payload = decode_access_token(credentials.credentials)
         raw_subject = payload.get("sub")
         user_id = int(raw_subject)
         if user_id < 1:

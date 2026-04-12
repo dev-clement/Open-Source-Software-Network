@@ -256,6 +256,44 @@ def test_me_returns_401_for_token_missing_sub_claim():
 
 
 
+def test_me_returns_401_for_token_missing_jti_claim():
+    fake_service = FakeAuthService(user_to_return=_build_user(user_id=1))
+    client = _build_client(fake_service)
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": "1",
+        "iat": now,
+        "exp": now + timedelta(minutes=5),
+    }
+    token = _encode_payload(payload)
+
+    response = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid access token"
+
+
+
+@pytest.mark.parametrize("jti_value", ["", None])
+def test_me_returns_401_for_token_with_invalid_jti(jti_value):
+    fake_service = FakeAuthService(user_to_return=_build_user(user_id=1))
+    client = _build_client(fake_service)
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": "1",
+        "jti": jti_value,
+        "iat": now,
+        "exp": now + timedelta(minutes=5),
+    }
+    token = _encode_payload(payload)
+
+    response = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid access token"
+
+
+
 @pytest.mark.parametrize("sub_value", ["abc", "1.2", "", " ", "none"])
 def test_me_returns_401_for_non_integer_subject(sub_value: str):
     fake_service = FakeAuthService(user_to_return=_build_user(user_id=1))
