@@ -10,7 +10,7 @@ toc::[]
 
 === Added
 
-* Added PyJWT dependency (`pyjwt >= 2.8.0`) in `backend/pixi.toml` for token-based authentication.
+* Added PyJWT dependency (`pyjwt >= 2.8.0, <3`) in `backend/pixi.toml` for token-based authentication.
 * **Implemented complete JWT-based authentication API with four endpoints:**
   ** `POST /auth/signup` — User registration with email uniqueness validation (25 tests, pre-existing)
   ** `POST /auth/login` — Credential validation and JWT token generation (27 tests)
