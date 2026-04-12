@@ -113,6 +113,17 @@ def revoke_access_token(token: str) -> None:
     _REVOKED_JTIS[token_jti] = token_exp
 
 
+def is_jti_revoked(jti: str) -> bool:
+    """Check whether a JWT identifier has been revoked.
+
+    :param jti: The JWT identifier string to check against the denylist.
+    :return: ``True`` when the JTI exists in the denylist, ``False`` otherwise.
+    """
+    now_ts = int(datetime.now(timezone.utc).timestamp())
+    _cleanup_revoked_jtis(now_ts)
+    return jti in _REVOKED_JTIS
+
+
 def is_access_token_revoked(token: str) -> bool:
     """Check whether an access token has been revoked.
 
@@ -125,6 +136,4 @@ def is_access_token_revoked(token: str) -> bool:
     if not isinstance(token_jti, str) or not token_jti:
         return False
 
-    now_ts = int(datetime.now(timezone.utc).timestamp())
-    _cleanup_revoked_jtis(now_ts)
-    return token_jti in _REVOKED_JTIS
+    return is_jti_revoked(token_jti)

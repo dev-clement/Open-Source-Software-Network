@@ -16,7 +16,12 @@ from app.auth.auth_local_service import AuthLocalService
 from app.auth.service import AuthService
 from app.auth.sql_repository import SqlUserRepository
 from app.auth.schemas import LoginRequest, TokenResponse, UserCreate, User
-from app.auth.helper import create_access_token, revoke_access_token
+from app.auth.helper import (
+    create_access_token,
+    decode_access_token,
+    is_jti_revoked,
+    revoke_access_token,
+)
 from app.core.settings import settings
 from app.db.session import DatabaseEngine
 
@@ -147,6 +152,62 @@ async def logout(
 
 
 @router.get("/me", response_model=User)
-async def get_current_user():
-    """Get the currently authenticated user's profile."""
-    raise NotImplementedError
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    auth_service: AuthService = Depends(get_auth_service),
+) -> User:
+    """Get the currently authenticated user's profile.
+
+    The endpoint extracts the bearer token from the request, validates and
+    decodes it, and resolves the corresponding user profile by the ``sub``
+    claim value interpreted as the user identifier.
+
+    :param credentials: Parsed HTTP bearer authorization credentials.
+    :param auth_service: Authentication service used to load user profile
+        data by user identifier.
+    :return: The authenticated user's profile.
+    :raises HTTPException: Returns ``401 Unauthorized`` when authentication is
+        missing or token validation fails, and ``404 Not Found`` when no user
+        exists for the token subject.
+    """
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    try:
+        payload = decode_access_token(credentials.credentials)
+        token_jti = payload.get("jti")
+        if not isinstance(token_jti, str) or not token_jti:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid access token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        if is_jti_revoked(token_jti):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid access token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        raw_subject = payload.get("sub")
+        user_id = int(raw_subject)
+        if user_id < 1:
+            raise ValueError("Token subject must be a positive integer")
+    except (jwt.InvalidTokenError, ValueError, TypeError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid access token",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+
+    user = await auth_service.get_user_by_id(user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    return user

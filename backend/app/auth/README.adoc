@@ -17,6 +17,7 @@ Keep authentication logic isolated, testable, and reusable.
 * `service.py` — AuthService with business logic (register, authenticate, validate)
 * `repository.py` — UserRepository interface and SQL queries for auth
 * `api.py` — FastAPI routes (POST /auth/signup, /login, /logout)
+* `helper.py` — Utility functions (password hashing, JWT generation/validation)
 * `__init__.py` — Public exports from auth domain
 
 == 🏗️ Architecture
