@@ -1,0 +1,75 @@
+from typing import List
+
+from app.projects.sql_repository import SqlRepository
+from .service import ProjectService
+from .schemas import ProjectCreate, Project
+from .exception import ProjectNotFoundError, CreateProjectError
+
+class SQLProjectService(ProjectService):
+    """
+    SQL-based implementation of the ProjectService interface.
+
+    This class provides concrete implementations of the project operations defined in the ProjectService
+    abstract base class, using SQL queries to interact with a relational database. It handles tasks such as
+    creating new projects, listing existing projects with pagination, retrieving projects by their unique
+    identifiers, and filtering projects based on their help-wanted status.
+    """
+    def __init__(self, repository: SqlRepository):
+        """
+        Initialize the SQLProjectService with a repository.
+
+        Args:
+            repository: An instance of SqlRepository to interact with the database.
+        """
+        self.repository = repository
+    
+    async def create(self, project_data: ProjectCreate) -> Project:
+        """Create a new project in the database.
+
+        Args:
+            project_data: Validated payload containing the project fields to persist.
+
+        Returns:
+            The newly created project, including its generated id and timestamps.
+        """
+        existing_project = await self.repository.get_by_repository_url(project_data.repository_url)
+        if existing_project is not None:
+            raise CreateProjectError(f'''A project with the repository URL '{project_data.repository_url}' already exists.''')
+        return await self.repository.create(project_data)
+
+    async def list(self, skip: int = 0, limit: int = 100) -> List[Project]:
+        """List all projects with optional pagination.
+
+        Args:
+            skip: Number of records to skip before returning results. Defaults to 0.
+            limit: Maximum number of records to return. Defaults to 100.
+
+        Returns:
+            A list of projects.
+        """
+        return await self.repository.list(skip=skip, limit=limit)
+
+    async def get_by_id(self, project_id: int) -> Project:
+        """Retrieve a single project by its primary key.
+
+        Args:
+            project_id: The unique identifier of the project.
+
+        Returns:
+            The matching project.
+
+        Raises:
+            ProjectNotFoundError: If no project with the given id exists.
+        """
+        project = await self.repository.get_by_id(project_id)
+        if project is None:
+            raise ProjectNotFoundError(project_id)
+        return project
+
+    async def list_help_wanted(self) -> List[Project]:
+        """List all projects that are flagged as looking for contributors.
+
+        Returns:
+            A list of projects where help_wanted is True.
+        """
+        return await self.repository.list_help_wanted()
