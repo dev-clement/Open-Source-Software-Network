@@ -5,6 +5,7 @@ from __future__ import annotations
 from app.projects.repository import ProjectRepository
 from app.projects.schemas import Project, ProjectCreate
 from app.db.models import Project as ProjectModel
+from app.projects.exception import CreateProjectError
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,25 +20,29 @@ class SqlRepository(ProjectRepository):
         """
         self.session = session
     
-    async def create(self, project_data: ProjectCreate):
+    async def create(self, project_data: ProjectCreate) -> Project:
         """
         Creates a new project in the database.
 
         Args:
             project_data: The data for the new project.
 
+        Returns:
+            The created project with database-generated fields populated.
+
         Raises:
-            Exception: If the project could not be created.
+            CreateProjectError: If the project could not be created.
         """
         project_model = ProjectModel(**project_data.model_dump())
         self.session.add(project_model)
         try:
             await self.session.commit()
             await self.session.refresh(project_model)
-        except Exception:
+            return Project.model_validate(project_model)
+        except Exception as exc:
             await self.session.rollback()
-            raise
-    
+            raise CreateProjectError(f'''Cannot create the project {project_model}''') from exc
+
     async def get_by_id(self, project_id: int) -> Project | None:
         """
         Retrieves a project by its ID.
