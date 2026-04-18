@@ -1,3 +1,4 @@
+from app.projects.exception import CreateProjectError
 import asyncio
 from datetime import datetime
 import pytest
@@ -23,6 +24,17 @@ def make_repository(session: AsyncMock | None = None) -> SqlRepository:
     return SqlRepository(session=session or make_session())
 
 
+def configure_refresh_with_db_defaults(session: AsyncMock) -> None:
+    """Simulate database-generated fields populated during refresh."""
+
+    async def refresh_side_effect(model: ProjectModel) -> None:
+        model.id = 1
+        model.created_at = DT
+        model.updated_at = DT
+
+    session.refresh.side_effect = refresh_side_effect
+
+
 # ---------------------------------------------------------------------------
 # create
 # ---------------------------------------------------------------------------
@@ -30,6 +42,7 @@ def make_repository(session: AsyncMock | None = None) -> SqlRepository:
 def test_create_project_success():
     """Test successful creation of a project."""
     session = make_session()
+    configure_refresh_with_db_defaults(session)
     repo = make_repository(session)
     project_data = ProjectCreate(
         title="Test Project",
@@ -60,8 +73,10 @@ def test_create_project_commit_fails():
     )
 
     async def run():
-        with pytest.raises(Exception, match="Commit failed"):
+        with pytest.raises(CreateProjectError, match="Cannot create the project") as exc_info:
             await repo.create(project_data)
+        assert exc_info.value.__cause__ is not None
+        assert str(exc_info.value.__cause__) == "Commit failed"
 
     asyncio.run(run())
 
@@ -74,6 +89,7 @@ def test_create_project_commit_fails():
 def test_create_project_with_minimal_data():
     """Test creating a project with only the required fields."""
     session = make_session()
+    configure_refresh_with_db_defaults(session)
     repo = make_repository(session)
     project_data = ProjectCreate(
         title="Minimal Project",
@@ -97,6 +113,7 @@ def test_create_project_with_minimal_data():
 def test_create_project_passes_all_fields_to_model():
     """Test that all fields from ProjectCreate are forwarded to the db model."""
     session = make_session()
+    configure_refresh_with_db_defaults(session)
     repo = make_repository(session)
     project_data = ProjectCreate(
         title="Full Project",
@@ -119,6 +136,7 @@ def test_create_project_passes_all_fields_to_model():
 def test_create_calls_add_before_commit():
     """Test that add is called before commit during creation."""
     session = make_session()
+    configure_refresh_with_db_defaults(session)
     repo = make_repository(session)
     project_data = ProjectCreate(
         title="Order Test",
