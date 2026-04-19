@@ -66,10 +66,14 @@ class SQLProjectService(ProjectService):
             raise ProjectNotFoundError(project_id)
         return project
 
-    async def list_help_wanted(self) -> List[Project]:
-        """List all projects that are flagged as looking for contributors.
+    async def list_help_wanted(self, skip: int = 0, limit: int = 100) -> List[Project]:
+        """List help-wanted projects with optional pagination.
+
+        Args:
+            skip: Number of records to skip before returning results. Defaults to 0.
+            limit: Maximum number of records to return. Defaults to 100.
 
         Returns:
             A list of projects where help_wanted is True.
         """
-        return await self.repository.list_help_wanted()
+        return await self.repository.list_help_wanted(skip=skip, limit=limit)

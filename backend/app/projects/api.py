@@ -16,6 +16,7 @@ from app.projects.service import ProjectService
 from app.projects.sql_repository import SqlRepository
 from app.projects.sql_service import SQLProjectService
 from app.projects.exception import CreateProjectError
+from app.projects.exception import ProjectNotFoundError
 
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -72,18 +73,80 @@ async def create_project(
 
 
 @router.get("/", response_model=list[Project])
-async def list_projects(skip: int = 0, limit: int = 100):
-    """List all projects."""
-    raise NotImplementedError
+async def list_projects(
+    skip: int = 0,
+    limit: int = 100,
+    project_service: ProjectService = Depends(get_project_service),
+):
+    """
+    List projects with optional pagination.
 
+    This endpoint delegates project retrieval to the project service and
+    returns a paginated list of stored projects.
 
-@router.get("/{project_id}", response_model=Project)
-async def get_project(project_id: int):
-    """Get a single project by ID."""
-    raise NotImplementedError
+    Args:
+        skip: Number of project records to skip before returning results.
+        limit: Maximum number of project records to include in the response.
+        project_service: Request-scoped service responsible for project
+            listing operations.
+
+    Returns:
+        A list of projects matching the requested pagination parameters.
+    """
+    return await project_service.list(skip=skip, limit=limit)
 
 
 @router.get("/help-wanted", response_model=list[Project])
-async def list_help_wanted_projects():
-    """List projects seeking help."""
-    raise NotImplementedError
+async def list_help_wanted_projects(
+    skip: int = 0,
+    limit: int = 100,
+    project_service: ProjectService = Depends(get_project_service),
+):
+    """
+    List projects currently marked as seeking help.
+
+    This endpoint delegates filtering to the project service and returns only
+    projects where the ``help_wanted`` flag is set to ``True``.
+
+    Args:
+        skip: Number of help-wanted project records to skip.
+        limit: Maximum number of help-wanted project records to include.
+        project_service: Request-scoped service responsible for help-wanted
+            listing operations.
+
+    Returns:
+        A list of projects flagged as help wanted.
+    """
+    return await project_service.list_help_wanted(skip=skip, limit=limit)
+
+
+@router.get("/{project_id}", response_model=Project)
+async def get_project(
+    project_id: int,
+    project_service: ProjectService = Depends(get_project_service),
+):
+    """
+    Get a single project by its identifier.
+
+    This endpoint delegates lookup to the project service and returns the
+    matching project when found.
+
+    Args:
+        project_id: Identifier of the project to retrieve.
+        project_service: Request-scoped service responsible for project
+            retrieval operations.
+
+    Returns:
+        The project matching the provided id.
+
+    Raises:
+        HTTPException: Returns a 404 Not Found response when no project exists
+            for the given id.
+    """
+    try:
+        return await project_service.get_by_id(project_id=project_id)
+    except ProjectNotFoundError as pnfe:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(pnfe),
+        )

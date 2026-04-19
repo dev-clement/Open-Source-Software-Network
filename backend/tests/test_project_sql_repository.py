@@ -301,6 +301,9 @@ def test_list_default_pagination():
     asyncio.run(run())
 
     session.execute.assert_called_once()
+    statement = session.execute.call_args[0][0]
+    assert statement._offset_clause.value == 0
+    assert statement._limit_clause.value == 100
 
 
 def test_list_with_skip():
@@ -317,6 +320,9 @@ def test_list_with_skip():
     asyncio.run(run())
 
     session.execute.assert_called_once()
+    statement = session.execute.call_args[0][0]
+    assert statement._offset_clause.value == 10
+    assert statement._limit_clause.value == 100
 
 
 def test_list_with_limit():
@@ -333,6 +339,32 @@ def test_list_with_limit():
     asyncio.run(run())
 
     session.execute.assert_called_once()
+    statement = session.execute.call_args[0][0]
+    assert statement._offset_clause.value == 0
+    assert statement._limit_clause.value == 5
+
+
+def test_list_with_skip_and_limit_returns_paginated_result():
+    """Test that list returns only the paginated rows provided by the query result."""
+    session = make_session()
+    repo = make_repository(session)
+    mock_rows = [
+        ProjectModel(id=2, title="Project 2", repository_url="https://github.com/test/p2", created_at=DT, updated_at=DT),
+        ProjectModel(id=3, title="Project 3", repository_url="https://github.com/test/p3", created_at=DT, updated_at=DT),
+    ]
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = mock_rows
+    session.execute.return_value = mock_result
+
+    async def run():
+        return await repo.list(skip=1, limit=2)
+
+    projects = asyncio.run(run())
+
+    assert [project.id for project in projects] == [2, 3]
+    statement = session.execute.call_args[0][0]
+    assert statement._offset_clause.value == 1
+    assert statement._limit_clause.value == 2
 
 
 def test_list_returns_project_schemas():
@@ -503,6 +535,9 @@ def test_list_help_wanted_with_skip():
     asyncio.run(run())
 
     session.execute.assert_called_once()
+    statement = session.execute.call_args[0][0]
+    assert statement._offset_clause.value == 3
+    assert statement._limit_clause.value == 100
 
 
 def test_list_help_wanted_with_limit():
@@ -517,6 +552,34 @@ def test_list_help_wanted_with_limit():
         await repo.list_help_wanted(limit=5)
 
     asyncio.run(run())
+
+    session.execute.assert_called_once()
+    statement = session.execute.call_args[0][0]
+    assert statement._offset_clause.value == 0
+    assert statement._limit_clause.value == 5
+
+
+def test_list_help_wanted_with_skip_and_limit_returns_paginated_result():
+    """Test that list_help_wanted returns only the paginated help-wanted rows."""
+    session = make_session()
+    repo = make_repository(session)
+    mock_rows = [
+        ProjectModel(id=3, title="Help 3", repository_url="https://github.com/test/h3", help_wanted=True, created_at=DT, updated_at=DT),
+        ProjectModel(id=4, title="Help 4", repository_url="https://github.com/test/h4", help_wanted=True, created_at=DT, updated_at=DT),
+    ]
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = mock_rows
+    session.execute.return_value = mock_result
+
+    async def run():
+        return await repo.list_help_wanted(skip=2, limit=2)
+
+    projects = asyncio.run(run())
+
+    assert [project.id for project in projects] == [3, 4]
+    statement = session.execute.call_args[0][0]
+    assert statement._offset_clause.value == 2
+    assert statement._limit_clause.value == 2
 
     session.execute.assert_called_once()
 
