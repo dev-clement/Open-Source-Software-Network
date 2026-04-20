@@ -17,6 +17,8 @@ from app.projects.sql_repository import SqlRepository
 from app.projects.sql_service import SQLProjectService
 from app.projects.exception import CreateProjectError
 from app.projects.exception import ProjectNotFoundError
+from app.auth.api import get_current_user
+from app.auth.schemas import User
 
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -157,6 +159,7 @@ async def edit_project(
     project_id: int,
     project_data: ProjectUpdate,
     project_service: ProjectService = Depends(get_project_service),
+    user: User = Depends(get_current_user)
 ):
     """Edit an existing project by id.
 
@@ -178,7 +181,7 @@ async def edit_project(
             fail, such as repository URL conflicts or invalid update rules.
     """
     try:
-        return await project_service.edit(project_id=project_id, project_data=project_data)
+        return await project_service.edit(project_id=project_id, project_data=project_data, user=user)
     except ProjectNotFoundError as pnfe:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

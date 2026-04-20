@@ -7,7 +7,9 @@ Implementations will use SQLModel for database operations.
 from abc import ABC, abstractmethod
 from typing import Optional, List
 
+
 from app.projects.schemas import Project, ProjectCreate, ProjectUpdate
+from app.auth.schemas import User
 
 
 class ProjectRepository(ABC):
@@ -57,7 +59,7 @@ class ProjectRepository(ABC):
         ...
 
     @abstractmethod
-    async def edit(self, project_id: int, project_data: ProjectUpdate) -> Optional[Project]:
+    async def edit(self, project_id: int, project_data: ProjectUpdate, user: User) -> Optional[Project]:
         """Apply partial updates to a project and return the refreshed project.
 
         Implementations should mutate only the fields explicitly present in

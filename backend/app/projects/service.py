@@ -9,6 +9,7 @@ Responsibilities:
 from abc import ABC, abstractmethod
 from typing import List
 from app.projects.schemas import Project, ProjectCreate, ProjectUpdate
+from app.auth.schemas import User
 
 
 class ProjectService(ABC):
@@ -55,7 +56,7 @@ class ProjectService(ABC):
         ...
 
     @abstractmethod
-    async def edit(self, project_id: int, project_data: ProjectUpdate) -> Project:
+    async def edit(self, project_id: int, project_data: ProjectUpdate, user: User) -> Project:
         """Partially update an existing project.
 
         Args:

@@ -6,6 +6,7 @@ from app.projects.repository import ProjectRepository
 from app.projects.schemas import Project, ProjectCreate, ProjectUpdate
 from app.db.models import Project as ProjectModel
 from app.projects.exception import CreateProjectError
+from app.auth.schemas import User
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -60,17 +61,13 @@ class SqlRepository(ProjectRepository):
             return None
         return Project.model_validate(result_model)
 
-    async def edit(self, project_id: int, project_data: ProjectUpdate) -> Project | None:
-        """Partially updates an existing project.
-
-        Args:
-            project_id: The ID of the project to update.
-            project_data: Payload containing the fields to update.
-
-        Returns:
-            The updated project, or None if not found.
-        """
-        statement = select(ProjectModel).where(ProjectModel.id == project_id)
+    async def edit(self, project_id: int, project_data: ProjectUpdate, user: User) -> Project | None:
+        """Partially updates an existing project, only if owned by the user."""
+        # Filter by both project_id and owner_id (user.id)
+        statement = select(ProjectModel).where(
+            ProjectModel.id == project_id,
+            ProjectModel.owner_id == user.id
+        )
         result = await self.session.execute(statement)
         project_model = result.scalar_one_or_none()
         if project_model is None:

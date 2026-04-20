@@ -1,6 +1,7 @@
 from typing import List
 
 from app.projects.sql_repository import SqlRepository
+from app.auth.schemas import User
 from .service import ProjectService
 from .schemas import ProjectCreate, Project, ProjectUpdate
 from .exception import ProjectNotFoundError, CreateProjectError
@@ -66,7 +67,7 @@ class SQLProjectService(ProjectService):
             raise ProjectNotFoundError(project_id)
         return project
 
-    async def edit(self, project_id: int, project_data: ProjectUpdate) -> Project:
+    async def edit(self, project_id: int, project_data: ProjectUpdate, user: User) -> Project:
         """Partially update an existing project.
 
         Args:
@@ -96,7 +97,7 @@ class SQLProjectService(ProjectService):
                     f'''A project with the repository URL '{project_data.repository_url}' already exists.'''
                 )
 
-        updated_project = await self.repository.edit(project_id=project_id, project_data=project_data)
+        updated_project = await self.repository.edit(project_id=project_id, project_data=project_data, user=user)
         if updated_project is None:
             raise ProjectNotFoundError(project_id)
         return updated_project
