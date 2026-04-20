@@ -8,7 +8,7 @@ Responsibilities:
 """
 from abc import ABC, abstractmethod
 from typing import List
-from app.projects.schemas import Project, ProjectCreate
+from app.projects.schemas import Project, ProjectCreate, ProjectUpdate
 
 
 class ProjectService(ABC):
@@ -51,6 +51,23 @@ class ProjectService(ABC):
 
         Raises:
             ProjectNotFoundError: If no project with the given id exists.
+        """
+        ...
+
+    @abstractmethod
+    async def edit(self, project_id: int, project_data: ProjectUpdate) -> Project:
+        """Partially update an existing project.
+
+        Args:
+            project_id: The unique identifier of the project to update.
+            project_data: Payload with one or more fields to update.
+
+        Returns:
+            The updated project.
+
+        Raises:
+            ProjectNotFoundError: If no project with the given id exists.
+            CreateProjectError: If the requested repository_url conflicts with another project.
         """
         ...
 

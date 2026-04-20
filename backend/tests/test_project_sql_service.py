@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 
 from app.projects.sql_service import SQLProjectService
 from app.projects.sql_repository import SqlRepository
-from app.projects.schemas import Project, ProjectCreate
+from app.projects.schemas import Project, ProjectCreate, ProjectUpdate
 from app.projects.exception import CreateProjectError, ProjectNotFoundError
 
 
@@ -534,3 +534,129 @@ def test_list_help_wanted_returns_paginated_subset_from_repository():
     asyncio.run(run())
 
     repository.list_help_wanted.assert_called_once_with(skip=1, limit=2)
+
+
+# ---------------------------------------------------------------------------
+# edit
+# ---------------------------------------------------------------------------
+
+def test_edit_updates_project_when_found():
+    """edit should return the updated project when the target exists."""
+    repository = make_repository()
+    service = make_service(repository)
+    payload = ProjectUpdate(title="Updated Title")
+    repository.get_by_id.return_value = make_project(id=1)
+    expected = make_project(id=1, title="Updated Title")
+    repository.edit.return_value = expected
+
+    async def run():
+        result = await service.edit(project_id=1, project_data=payload)
+        assert result == expected
+
+    asyncio.run(run())
+
+    repository.get_by_id.assert_called_once_with(1)
+    repository.get_by_repository_url.assert_not_called()
+    repository.edit.assert_called_once_with(project_id=1, project_data=payload)
+
+
+def test_edit_raises_when_project_not_found():
+    """edit should raise ProjectNotFoundError when the target project does not exist."""
+    repository = make_repository()
+    service = make_service(repository)
+    payload = ProjectUpdate(title="No Target")
+    repository.get_by_id.return_value = None
+
+    async def run():
+        with pytest.raises(ProjectNotFoundError) as exc_info:
+            await service.edit(project_id=999, project_data=payload)
+        assert exc_info.value.get_project_id() == 999
+
+    asyncio.run(run())
+
+    repository.get_by_id.assert_called_once_with(999)
+    repository.get_by_repository_url.assert_not_called()
+    repository.edit.assert_not_called()
+
+
+def test_edit_checks_repository_url_conflict_for_another_project():
+    """edit should reject repository_url updates that belong to another project."""
+    repository = make_repository()
+    service = make_service(repository)
+    payload = ProjectUpdate(repository_url="https://github.com/test/conflict")
+    repository.get_by_id.return_value = make_project(id=1)
+    repository.get_by_repository_url.return_value = make_project(
+        id=2,
+        repository_url="https://github.com/test/conflict",
+    )
+
+    async def run():
+        with pytest.raises(CreateProjectError):
+            await service.edit(project_id=1, project_data=payload)
+
+    asyncio.run(run())
+
+    repository.get_by_id.assert_called_once_with(1)
+    repository.get_by_repository_url.assert_called_once_with(payload.repository_url)
+    repository.edit.assert_not_called()
+
+
+def test_edit_raises_when_repository_url_does_not_exist():
+    """edit should reject repository_url updates when the URL does not resolve to a project."""
+    repository = make_repository()
+    service = make_service(repository)
+    payload = ProjectUpdate(repository_url="https://github.com/test/missing")
+    repository.get_by_id.return_value = make_project(id=1)
+    repository.get_by_repository_url.return_value = None
+
+    async def run():
+        with pytest.raises(CreateProjectError) as exc_info:
+            await service.edit(project_id=1, project_data=payload)
+        assert "does not exist" in str(exc_info.value)
+
+    asyncio.run(run())
+
+    repository.get_by_id.assert_called_once_with(1)
+    repository.get_by_repository_url.assert_called_once_with(payload.repository_url)
+    repository.edit.assert_not_called()
+
+
+def test_edit_allows_same_repository_url_for_same_project():
+    """edit should allow repository_url when it belongs to the same project."""
+    repository = make_repository()
+    service = make_service(repository)
+    payload = ProjectUpdate(repository_url="https://github.com/test/project")
+    repository.get_by_id.return_value = make_project(id=1, repository_url="https://github.com/test/project")
+    repository.get_by_repository_url.return_value = make_project(
+        id=1,
+        repository_url="https://github.com/test/project",
+    )
+    repository.edit.return_value = make_project(id=1, repository_url="https://github.com/test/project")
+
+    async def run():
+        result = await service.edit(project_id=1, project_data=payload)
+        assert result.id == 1
+
+    asyncio.run(run())
+
+    repository.get_by_id.assert_called_once_with(1)
+    repository.get_by_repository_url.assert_called_once_with(payload.repository_url)
+    repository.edit.assert_called_once_with(project_id=1, project_data=payload)
+
+
+def test_edit_skips_url_lookup_when_repository_url_not_updated():
+    """edit should not call URL lookup when repository_url is absent from payload."""
+    repository = make_repository()
+    service = make_service(repository)
+    payload = ProjectUpdate(help_wanted=True)
+    repository.get_by_id.return_value = make_project(id=3)
+    repository.edit.return_value = make_project(id=3, help_wanted=True)
+
+    async def run():
+        await service.edit(project_id=3, project_data=payload)
+
+    asyncio.run(run())
+
+    repository.get_by_id.assert_called_once_with(3)
+    repository.get_by_repository_url.assert_not_called()
+    repository.edit.assert_called_once_with(project_id=3, project_data=payload)
