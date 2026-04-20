@@ -80,7 +80,7 @@ class FakeProjectService:
             raise self.error_to_raise
         return self.project_to_return
 
-    async def edit(self, project_id: int, project_data: ProjectUpdate) -> Project:
+    async def edit(self, project_id: int, project_data: ProjectUpdate, user=None) -> Project:
         self.edit_calls += 1
         self.last_project_id = project_id
         self.last_edit_data = project_data
@@ -126,6 +126,12 @@ def _build_client(
     app = FastAPI()
     app.include_router(projects_api.router)
     app.dependency_overrides[projects_api.get_project_service] = lambda: fake_service
+    # Patch get_current_user to always return a dummy user for edit endpoint tests
+    class DummyUser:
+        id = 42
+        email = "dummy@example.com"
+        username = "dummy"
+    app.dependency_overrides[projects_api.get_current_user] = lambda: DummyUser()
     return TestClient(app, raise_server_exceptions=raise_server_exceptions)
 
 

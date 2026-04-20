@@ -545,19 +545,20 @@ def test_edit_updates_project_when_found():
     repository = make_repository()
     service = make_service(repository)
     payload = ProjectUpdate(title="Updated Title")
+    user = object()  # Dummy user object for test
     repository.get_by_id.return_value = make_project(id=1)
     expected = make_project(id=1, title="Updated Title")
     repository.edit.return_value = expected
 
     async def run():
-        result = await service.edit(project_id=1, project_data=payload)
+        result = await service.edit(project_id=1, project_data=payload, user=user)
         assert result == expected
 
     asyncio.run(run())
 
     repository.get_by_id.assert_called_once_with(1)
     repository.get_by_repository_url.assert_not_called()
-    repository.edit.assert_called_once_with(project_id=1, project_data=payload)
+    repository.edit.assert_called_once_with(project_id=1, project_data=payload, user=user)
 
 
 def test_edit_raises_when_project_not_found():
@@ -565,11 +566,12 @@ def test_edit_raises_when_project_not_found():
     repository = make_repository()
     service = make_service(repository)
     payload = ProjectUpdate(title="No Target")
+    user = object()
     repository.get_by_id.return_value = None
 
     async def run():
         with pytest.raises(ProjectNotFoundError) as exc_info:
-            await service.edit(project_id=999, project_data=payload)
+            await service.edit(project_id=999, project_data=payload, user=user)
         assert exc_info.value.get_project_id() == 999
 
     asyncio.run(run())
@@ -584,6 +586,7 @@ def test_edit_checks_repository_url_conflict_for_another_project():
     repository = make_repository()
     service = make_service(repository)
     payload = ProjectUpdate(repository_url="https://github.com/test/conflict")
+    user = object()
     repository.get_by_id.return_value = make_project(id=1)
     repository.get_by_repository_url.return_value = make_project(
         id=2,
@@ -592,7 +595,7 @@ def test_edit_checks_repository_url_conflict_for_another_project():
 
     async def run():
         with pytest.raises(CreateProjectError):
-            await service.edit(project_id=1, project_data=payload)
+            await service.edit(project_id=1, project_data=payload, user=user)
 
     asyncio.run(run())
 
@@ -606,12 +609,13 @@ def test_edit_raises_when_repository_url_does_not_exist():
     repository = make_repository()
     service = make_service(repository)
     payload = ProjectUpdate(repository_url="https://github.com/test/missing")
+    user = object()
     repository.get_by_id.return_value = make_project(id=1)
     repository.get_by_repository_url.return_value = None
 
     async def run():
         with pytest.raises(CreateProjectError) as exc_info:
-            await service.edit(project_id=1, project_data=payload)
+            await service.edit(project_id=1, project_data=payload, user=user)
         assert "does not exist" in str(exc_info.value)
 
     asyncio.run(run())
@@ -626,6 +630,7 @@ def test_edit_allows_same_repository_url_for_same_project():
     repository = make_repository()
     service = make_service(repository)
     payload = ProjectUpdate(repository_url="https://github.com/test/project")
+    user = object()
     repository.get_by_id.return_value = make_project(id=1, repository_url="https://github.com/test/project")
     repository.get_by_repository_url.return_value = make_project(
         id=1,
@@ -634,14 +639,14 @@ def test_edit_allows_same_repository_url_for_same_project():
     repository.edit.return_value = make_project(id=1, repository_url="https://github.com/test/project")
 
     async def run():
-        result = await service.edit(project_id=1, project_data=payload)
+        result = await service.edit(project_id=1, project_data=payload, user=user)
         assert result.id == 1
 
     asyncio.run(run())
 
     repository.get_by_id.assert_called_once_with(1)
     repository.get_by_repository_url.assert_called_once_with(payload.repository_url)
-    repository.edit.assert_called_once_with(project_id=1, project_data=payload)
+    repository.edit.assert_called_once_with(project_id=1, project_data=payload, user=user)
 
 
 def test_edit_skips_url_lookup_when_repository_url_not_updated():
@@ -649,14 +654,15 @@ def test_edit_skips_url_lookup_when_repository_url_not_updated():
     repository = make_repository()
     service = make_service(repository)
     payload = ProjectUpdate(help_wanted=True)
+    user = object()
     repository.get_by_id.return_value = make_project(id=3)
     repository.edit.return_value = make_project(id=3, help_wanted=True)
 
     async def run():
-        await service.edit(project_id=3, project_data=payload)
+        await service.edit(project_id=3, project_data=payload, user=user)
 
     asyncio.run(run())
 
     repository.get_by_id.assert_called_once_with(3)
     repository.get_by_repository_url.assert_not_called()
-    repository.edit.assert_called_once_with(project_id=3, project_data=payload)
+    repository.edit.assert_called_once_with(project_id=3, project_data=payload, user=user)

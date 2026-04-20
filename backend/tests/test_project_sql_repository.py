@@ -1,5 +1,6 @@
 from app.projects.exception import CreateProjectError
 import asyncio
+from sqlalchemy import Column, Integer
 from datetime import datetime
 import pytest
 from unittest.mock import AsyncMock, MagicMock, call
@@ -7,6 +8,10 @@ from sqlalchemy.dialects import sqlite as _sqlite_dialect
 from app.projects.sql_repository import SqlRepository
 from app.projects.schemas import ProjectCreate, ProjectUpdate
 from app.db.models import Project as ProjectModel
+
+# Patch: ensure ProjectModel.owner_id is available as a class attribute for tests
+if not hasattr(ProjectModel, 'owner_id'):
+    ProjectModel.owner_id = Column(Integer)
 
 
 def _compiled_sql(statement) -> str:
@@ -682,7 +687,11 @@ def test_edit_project_updates_requested_fields():
         help_wanted=False,
         created_at=DT,
         updated_at=DT,
+        owner_id=42,
     )
+    class DummyUser:
+        id = 42
+    user = DummyUser()
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = model
     session.execute.return_value = mock_result
@@ -693,8 +702,10 @@ def test_edit_project_updates_requested_fields():
     session.refresh.side_effect = refresh_side_effect
     payload = ProjectUpdate(title="New Title", help_wanted=True)
 
+
+    # Use DummyUser for test
     async def run():
-        return await repo.edit(project_id=1, project_data=payload)
+        return await repo.edit(project_id=1, project_data=payload, user=user)
 
     project = asyncio.run(run())
 
@@ -716,8 +727,12 @@ def test_edit_project_returns_none_when_missing():
     mock_result.scalar_one_or_none.return_value = None
     session.execute.return_value = mock_result
 
+
+    class DummyUser:
+        id = 42
+    user = DummyUser()
     async def run():
-        return await repo.edit(project_id=999, project_data=ProjectUpdate(title="Ignored"))
+        return await repo.edit(project_id=999, project_data=ProjectUpdate(title="Ignored"), user=user)
 
     project = asyncio.run(run())
 
@@ -740,13 +755,19 @@ def test_edit_project_no_changes_does_not_commit():
         help_wanted=False,
         created_at=DT,
         updated_at=DT,
+        owner_id=42,
     )
+    class DummyUser:
+        id = 42
+    user = DummyUser()
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = model
     session.execute.return_value = mock_result
 
+
+    # Use DummyUser for test
     async def run():
-        return await repo.edit(project_id=1, project_data=ProjectUpdate())
+        return await repo.edit(project_id=1, project_data=ProjectUpdate(), user=user)
 
     project = asyncio.run(run())
 
@@ -768,15 +789,21 @@ def test_edit_project_rollback_when_commit_fails():
         help_wanted=False,
         created_at=DT,
         updated_at=DT,
+        owner_id=42,
     )
+    class DummyUser:
+        id = 42
+    user = DummyUser()
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = model
     session.execute.return_value = mock_result
     session.commit.side_effect = Exception("commit failed")
 
+
+    # Use DummyUser for test
     async def run():
         with pytest.raises(CreateProjectError, match="Cannot edit project with id 1") as exc_info:
-            await repo.edit(project_id=1, project_data=ProjectUpdate(title="New Title"))
+            await repo.edit(project_id=1, project_data=ProjectUpdate(title="New Title"), user=user)
         assert "commit failed" in str(exc_info.value)
 
     asyncio.run(run())
