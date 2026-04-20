@@ -443,3 +443,65 @@ def test_create_project_returns_422_when_title_is_empty_string():
     response = client.post("/projects/", json=payload)
 
     assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Pagination validation: list projects
+# ---------------------------------------------------------------------------
+
+def test_list_projects_returns_422_when_skip_is_negative():
+    fake_service = FakeProjectService(projects_to_return=[])
+    client = _build_client(fake_service)
+
+    response = client.get("/projects/?skip=-1")
+
+    assert response.status_code == 422
+
+
+def test_list_projects_returns_422_when_limit_is_zero():
+    fake_service = FakeProjectService(projects_to_return=[])
+    client = _build_client(fake_service)
+
+    response = client.get("/projects/?limit=0")
+
+    assert response.status_code == 422
+
+
+def test_list_projects_returns_422_when_limit_exceeds_maximum():
+    fake_service = FakeProjectService(projects_to_return=[])
+    client = _build_client(fake_service)
+
+    response = client.get("/projects/?limit=1001")
+
+    assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Pagination validation: list help-wanted projects
+# ---------------------------------------------------------------------------
+
+def test_list_help_wanted_projects_returns_422_when_skip_is_negative():
+    fake_service = FakeProjectService(projects_to_return=[])
+    client = _build_client(fake_service)
+
+    response = client.get("/projects/help-wanted?skip=-1")
+
+    assert response.status_code == 422
+
+
+def test_list_help_wanted_projects_returns_422_when_limit_is_zero():
+    fake_service = FakeProjectService(projects_to_return=[])
+    client = _build_client(fake_service)
+
+    response = client.get("/projects/help-wanted?limit=0")
+
+    assert response.status_code == 422
+
+
+def test_list_help_wanted_projects_returns_422_when_limit_exceeds_maximum():
+    fake_service = FakeProjectService(projects_to_return=[])
+    client = _build_client(fake_service)
+
+    response = client.get("/projects/help-wanted?limit=1001")
+
+    assert response.status_code == 422

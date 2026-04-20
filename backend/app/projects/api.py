@@ -6,7 +6,7 @@ All routes delegate to ProjectService for business logic.
 
 from typing import AsyncGenerator
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.settings import settings
@@ -74,8 +74,8 @@ async def create_project(
 
 @router.get("/", response_model=list[Project])
 async def list_projects(
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=1000),
     project_service: ProjectService = Depends(get_project_service),
 ):
     """
@@ -98,8 +98,8 @@ async def list_projects(
 
 @router.get("/help-wanted", response_model=list[Project])
 async def list_help_wanted_projects(
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=1000),
     project_service: ProjectService = Depends(get_project_service),
 ):
     """
