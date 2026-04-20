@@ -46,8 +46,12 @@ def test_settings_is_immutable():
         config.POSTGRES_DB = "other"
 
 
-def test_settings_default_host_and_port_are_applied():
+def test_settings_default_host_and_port_are_applied(monkeypatch):
+    monkeypatch.delenv("POSTGRES_HOST", raising=False)
+    monkeypatch.delenv("POSTGRES_PORT", raising=False)
+
     config = PSQLSettings(
+        _env_file=None,
         POSTGRES_USER="user",
         POSTGRES_PASSWORD="pass",
         POSTGRES_DB="db",
@@ -57,8 +61,13 @@ def test_settings_default_host_and_port_are_applied():
     assert config.POSTGRES_PORT == 5432
 
 
-def test_settings_app_defaults_are_present():
+def test_settings_app_defaults_are_present(monkeypatch):
+    monkeypatch.delenv("APP_NAME", raising=False)
+    monkeypatch.delenv("ENVIRONMENT", raising=False)
+    monkeypatch.delenv("DEBUG", raising=False)
+
     config = PSQLSettings(
+        _env_file=None,
         POSTGRES_USER="user",
         POSTGRES_PASSWORD="pass",
         POSTGRES_DB="db",

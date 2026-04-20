@@ -3,9 +3,20 @@ import asyncio
 from datetime import datetime
 import pytest
 from unittest.mock import AsyncMock, MagicMock, call
+from sqlalchemy.dialects import sqlite as _sqlite_dialect
 from app.projects.sql_repository import SqlRepository
 from app.projects.schemas import ProjectCreate
 from app.db.models import Project as ProjectModel
+
+
+def _compiled_sql(statement) -> str:
+    """Compile a SQLAlchemy statement to SQL text with literal bound values."""
+    return str(
+        statement.compile(
+            dialect=_sqlite_dialect.dialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
 
 
 DT = datetime(2026, 1, 1, 0, 0, 0)
@@ -302,8 +313,9 @@ def test_list_default_pagination():
 
     session.execute.assert_called_once()
     statement = session.execute.call_args[0][0]
-    assert statement._offset_clause.value == 0
-    assert statement._limit_clause.value == 100
+    sql = _compiled_sql(statement)
+    assert "LIMIT 100" in sql
+    assert "OFFSET 0" in sql
 
 
 def test_list_with_skip():
@@ -321,8 +333,9 @@ def test_list_with_skip():
 
     session.execute.assert_called_once()
     statement = session.execute.call_args[0][0]
-    assert statement._offset_clause.value == 10
-    assert statement._limit_clause.value == 100
+    sql = _compiled_sql(statement)
+    assert "LIMIT 100" in sql
+    assert "OFFSET 10" in sql
 
 
 def test_list_with_limit():
@@ -340,8 +353,9 @@ def test_list_with_limit():
 
     session.execute.assert_called_once()
     statement = session.execute.call_args[0][0]
-    assert statement._offset_clause.value == 0
-    assert statement._limit_clause.value == 5
+    sql = _compiled_sql(statement)
+    assert "LIMIT 5" in sql
+    assert "OFFSET 0" in sql
 
 
 def test_list_with_skip_and_limit_returns_paginated_result():
@@ -363,8 +377,9 @@ def test_list_with_skip_and_limit_returns_paginated_result():
 
     assert [project.id for project in projects] == [2, 3]
     statement = session.execute.call_args[0][0]
-    assert statement._offset_clause.value == 1
-    assert statement._limit_clause.value == 2
+    sql = _compiled_sql(statement)
+    assert "LIMIT 2" in sql
+    assert "OFFSET 1" in sql
 
 
 def test_list_returns_project_schemas():
@@ -536,8 +551,9 @@ def test_list_help_wanted_with_skip():
 
     session.execute.assert_called_once()
     statement = session.execute.call_args[0][0]
-    assert statement._offset_clause.value == 3
-    assert statement._limit_clause.value == 100
+    sql = _compiled_sql(statement)
+    assert "LIMIT 100" in sql
+    assert "OFFSET 3" in sql
 
 
 def test_list_help_wanted_with_limit():
@@ -555,8 +571,9 @@ def test_list_help_wanted_with_limit():
 
     session.execute.assert_called_once()
     statement = session.execute.call_args[0][0]
-    assert statement._offset_clause.value == 0
-    assert statement._limit_clause.value == 5
+    sql = _compiled_sql(statement)
+    assert "LIMIT 5" in sql
+    assert "OFFSET 0" in sql
 
 
 def test_list_help_wanted_with_skip_and_limit_returns_paginated_result():
@@ -578,8 +595,9 @@ def test_list_help_wanted_with_skip_and_limit_returns_paginated_result():
 
     assert [project.id for project in projects] == [3, 4]
     statement = session.execute.call_args[0][0]
-    assert statement._offset_clause.value == 2
-    assert statement._limit_clause.value == 2
+    sql = _compiled_sql(statement)
+    assert "LIMIT 2" in sql
+    assert "OFFSET 2" in sql
 
     session.execute.assert_called_once()
 
