@@ -15,7 +15,7 @@ os.environ.setdefault("JWT_ALGORITHM", "HS256")
 os.environ.setdefault("JWT_EXPIRATION_MINUTES", "30")
 
 from app.projects import api as projects_api
-from app.projects.schemas import Project, ProjectCreate
+from app.projects.schemas import Project, ProjectCreate, ProjectUpdate
 from app.projects.exception import CreateProjectError
 from app.projects.exception import ProjectNotFoundError
 
@@ -47,7 +47,9 @@ class FakeProjectService:
         self.list_calls = 0
         self.list_help_wanted_calls = 0
         self.get_by_id_calls = 0
+        self.edit_calls = 0
         self.last_project_data: Optional[ProjectCreate] = None
+        self.last_edit_data: Optional[ProjectUpdate] = None
         self.last_skip: Optional[int] = None
         self.last_limit: Optional[int] = None
         self.last_help_wanted_skip: Optional[int] = None
@@ -74,6 +76,14 @@ class FakeProjectService:
     async def get_by_id(self, project_id: int) -> Project:
         self.get_by_id_calls += 1
         self.last_project_id = project_id
+        if self.error_to_raise is not None:
+            raise self.error_to_raise
+        return self.project_to_return
+
+    async def edit(self, project_id: int, project_data: ProjectUpdate) -> Project:
+        self.edit_calls += 1
+        self.last_project_id = project_id
+        self.last_edit_data = project_data
         if self.error_to_raise is not None:
             raise self.error_to_raise
         return self.project_to_return
@@ -234,6 +244,61 @@ def test_get_project_does_not_swallow_unexpected_errors():
     client = _build_client(fake_service, raise_server_exceptions=False)
 
     response = client.get("/projects/1")
+
+    assert response.status_code == 500
+
+
+def test_edit_project_returns_200_on_success():
+    fake_service = FakeProjectService(project_to_return=_build_project(project_id=10, title="Edited"))
+    client = _build_client(fake_service)
+
+    response = client.put("/projects/edit/10", json={"title": "Edited"})
+
+    assert response.status_code == 200
+    assert response.json()["id"] == 10
+    assert response.json()["title"] == "Edited"
+
+
+def test_edit_project_delegates_to_service_with_project_id_and_payload():
+    fake_service = FakeProjectService(project_to_return=_build_project(project_id=11, title="Updated Title"))
+    client = _build_client(fake_service)
+
+    client.put("/projects/edit/11", json={"title": "Updated Title"})
+
+    assert fake_service.edit_calls == 1
+    assert fake_service.last_project_id == 11
+    assert fake_service.last_edit_data.title == "Updated Title"
+
+
+def test_edit_project_returns_404_on_project_not_found_error():
+    fake_service = FakeProjectService(error_to_raise=ProjectNotFoundError(404))
+    client = _build_client(fake_service)
+
+    response = client.put("/projects/edit/404", json={"title": "Ignored"})
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Project with id 404 not found"
+
+
+def test_edit_project_returns_409_on_create_project_error():
+    error_message = "Cannot edit project with repository URL 'https://github.com/example/missing' because it does not exist."
+    fake_service = FakeProjectService(error_to_raise=CreateProjectError(error_message))
+    client = _build_client(fake_service)
+
+    response = client.put(
+        "/projects/edit/1",
+        json={"repository_url": "https://github.com/example/missing"},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == error_message
+
+
+def test_edit_project_does_not_swallow_unexpected_errors():
+    fake_service = FakeProjectService(error_to_raise=RuntimeError("unexpected"))
+    client = _build_client(fake_service, raise_server_exceptions=False)
+
+    response = client.put("/projects/edit/1", json={"title": "Any"})
 
     assert response.status_code == 500
 
@@ -443,6 +508,41 @@ def test_create_project_returns_422_when_title_is_empty_string():
     response = client.post("/projects/", json=payload)
 
     assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Additional edit endpoint edge cases
+# ---------------------------------------------------------------------------
+
+def test_edit_project_returns_422_when_no_payload():
+    fake_service = FakeProjectService(project_to_return=_build_project(project_id=12))
+    client = _build_client(fake_service)
+    response = client.put("/projects/edit/12", data=None)
+    assert response.status_code == 422
+
+def test_edit_project_returns_422_when_payload_is_empty_object():
+    fake_service = FakeProjectService(project_to_return=_build_project(project_id=13))
+    client = _build_client(fake_service)
+    response = client.put("/projects/edit/13", json={})
+    # Accepts empty payload, returns unchanged project
+    assert response.status_code == 200
+    assert response.json()["id"] == 13
+
+def test_edit_project_returns_422_when_field_type_invalid():
+    fake_service = FakeProjectService(project_to_return=_build_project(project_id=14))
+    client = _build_client(fake_service)
+    response = client.put("/projects/edit/14", json={"help_wanted": "notabool"})
+    assert response.status_code == 422
+
+
+
+def test_edit_project_ignores_unknown_fields():
+    fake_service = FakeProjectService(project_to_return=_build_project(project_id=15))
+    client = _build_client(fake_service)
+    response = client.put("/projects/edit/15", json={"unknown_field": "value", "title": "Known"})
+    assert response.status_code == 200
+    # The project is returned unchanged, unknown fields are ignored, known fields not updated if sent with unknown
+    assert response.json()["title"] == "My OSS Project"
 
 
 # ---------------------------------------------------------------------------
