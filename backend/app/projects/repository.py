@@ -70,8 +70,12 @@ class ProjectRepository(ABC):
         raise NotImplementedError
     
     @abstractmethod
-    async def list_help_wanted(self) -> List[Project]:
-        """Return all projects currently marked as accepting help.
+    async def list_help_wanted(self, skip: int = 0, limit: int = 100) -> List[Project]:
+        """Return paginated projects currently marked as accepting help.
+
+        :param skip: Number of matching help-wanted project records to omit
+            before collecting results.
+        :param limit: Maximum number of help-wanted project records to return.
 
         :return: A list of project schemas whose ``help_wanted`` flag is set
             to ``True``.

@@ -3,9 +3,20 @@ import asyncio
 from datetime import datetime
 import pytest
 from unittest.mock import AsyncMock, MagicMock, call
+from sqlalchemy.dialects import sqlite as _sqlite_dialect
 from app.projects.sql_repository import SqlRepository
 from app.projects.schemas import ProjectCreate
 from app.db.models import Project as ProjectModel
+
+
+def _compiled_sql(statement) -> str:
+    """Compile a SQLAlchemy statement to SQL text with literal bound values."""
+    return str(
+        statement.compile(
+            dialect=_sqlite_dialect.dialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
 
 
 DT = datetime(2026, 1, 1, 0, 0, 0)
@@ -301,6 +312,10 @@ def test_list_default_pagination():
     asyncio.run(run())
 
     session.execute.assert_called_once()
+    statement = session.execute.call_args[0][0]
+    sql = _compiled_sql(statement)
+    assert "LIMIT 100" in sql
+    assert "OFFSET 0" in sql
 
 
 def test_list_with_skip():
@@ -317,6 +332,10 @@ def test_list_with_skip():
     asyncio.run(run())
 
     session.execute.assert_called_once()
+    statement = session.execute.call_args[0][0]
+    sql = _compiled_sql(statement)
+    assert "LIMIT 100" in sql
+    assert "OFFSET 10" in sql
 
 
 def test_list_with_limit():
@@ -333,6 +352,34 @@ def test_list_with_limit():
     asyncio.run(run())
 
     session.execute.assert_called_once()
+    statement = session.execute.call_args[0][0]
+    sql = _compiled_sql(statement)
+    assert "LIMIT 5" in sql
+    assert "OFFSET 0" in sql
+
+
+def test_list_with_skip_and_limit_returns_paginated_result():
+    """Test that list returns only the paginated rows provided by the query result."""
+    session = make_session()
+    repo = make_repository(session)
+    mock_rows = [
+        ProjectModel(id=2, title="Project 2", repository_url="https://github.com/test/p2", created_at=DT, updated_at=DT),
+        ProjectModel(id=3, title="Project 3", repository_url="https://github.com/test/p3", created_at=DT, updated_at=DT),
+    ]
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = mock_rows
+    session.execute.return_value = mock_result
+
+    async def run():
+        return await repo.list(skip=1, limit=2)
+
+    projects = asyncio.run(run())
+
+    assert [project.id for project in projects] == [2, 3]
+    statement = session.execute.call_args[0][0]
+    sql = _compiled_sql(statement)
+    assert "LIMIT 2" in sql
+    assert "OFFSET 1" in sql
 
 
 def test_list_returns_project_schemas():
@@ -503,6 +550,10 @@ def test_list_help_wanted_with_skip():
     asyncio.run(run())
 
     session.execute.assert_called_once()
+    statement = session.execute.call_args[0][0]
+    sql = _compiled_sql(statement)
+    assert "LIMIT 100" in sql
+    assert "OFFSET 3" in sql
 
 
 def test_list_help_wanted_with_limit():
@@ -517,6 +568,36 @@ def test_list_help_wanted_with_limit():
         await repo.list_help_wanted(limit=5)
 
     asyncio.run(run())
+
+    session.execute.assert_called_once()
+    statement = session.execute.call_args[0][0]
+    sql = _compiled_sql(statement)
+    assert "LIMIT 5" in sql
+    assert "OFFSET 0" in sql
+
+
+def test_list_help_wanted_with_skip_and_limit_returns_paginated_result():
+    """Test that list_help_wanted returns only the paginated help-wanted rows."""
+    session = make_session()
+    repo = make_repository(session)
+    mock_rows = [
+        ProjectModel(id=3, title="Help 3", repository_url="https://github.com/test/h3", help_wanted=True, created_at=DT, updated_at=DT),
+        ProjectModel(id=4, title="Help 4", repository_url="https://github.com/test/h4", help_wanted=True, created_at=DT, updated_at=DT),
+    ]
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = mock_rows
+    session.execute.return_value = mock_result
+
+    async def run():
+        return await repo.list_help_wanted(skip=2, limit=2)
+
+    projects = asyncio.run(run())
+
+    assert [project.id for project in projects] == [3, 4]
+    statement = session.execute.call_args[0][0]
+    sql = _compiled_sql(statement)
+    assert "LIMIT 2" in sql
+    assert "OFFSET 2" in sql
 
     session.execute.assert_called_once()
 
