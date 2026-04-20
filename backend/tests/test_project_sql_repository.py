@@ -5,7 +5,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, call
 from sqlalchemy.dialects import sqlite as _sqlite_dialect
 from app.projects.sql_repository import SqlRepository
-from app.projects.schemas import ProjectCreate
+from app.projects.schemas import ProjectCreate, ProjectUpdate
 from app.db.models import Project as ProjectModel
 
 
@@ -664,3 +664,123 @@ def test_list_help_wanted_single_project():
 
     assert len(projects) == 1
     assert projects[0].help_wanted is True
+
+
+# ---------------------------------------------------------------------------
+# edit
+# ---------------------------------------------------------------------------
+
+def test_edit_project_updates_requested_fields():
+    """edit should update only the fields provided in ProjectUpdate."""
+    session = make_session()
+    repo = make_repository(session)
+    model = ProjectModel(
+        id=1,
+        title="Old Title",
+        description="Old description",
+        repository_url="https://github.com/test/old",
+        help_wanted=False,
+        created_at=DT,
+        updated_at=DT,
+    )
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = model
+    session.execute.return_value = mock_result
+
+    async def refresh_side_effect(project_model: ProjectModel) -> None:
+        project_model.updated_at = datetime(2026, 1, 2, 0, 0, 0)
+
+    session.refresh.side_effect = refresh_side_effect
+    payload = ProjectUpdate(title="New Title", help_wanted=True)
+
+    async def run():
+        return await repo.edit(project_id=1, project_data=payload)
+
+    project = asyncio.run(run())
+
+    assert project is not None
+    assert project.title == "New Title"
+    assert project.help_wanted is True
+    assert project.description == "Old description"
+    assert str(project.repository_url) == "https://github.com/test/old"
+    session.add.assert_called_once_with(model)
+    session.commit.assert_called_once()
+    session.refresh.assert_called_once_with(model)
+
+
+def test_edit_project_returns_none_when_missing():
+    """edit should return None when no project exists for the given id."""
+    session = make_session()
+    repo = make_repository(session)
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    session.execute.return_value = mock_result
+
+    async def run():
+        return await repo.edit(project_id=999, project_data=ProjectUpdate(title="Ignored"))
+
+    project = asyncio.run(run())
+
+    assert project is None
+    session.execute.assert_called_once()
+    session.add.assert_not_called()
+    session.commit.assert_not_called()
+    session.refresh.assert_not_called()
+    session.rollback.assert_not_called()
+
+
+def test_edit_project_no_changes_does_not_commit():
+    """edit should not commit when update payload is empty."""
+    session = make_session()
+    repo = make_repository(session)
+    model = ProjectModel(
+        id=1,
+        title="Stable Title",
+        repository_url="https://github.com/test/stable",
+        help_wanted=False,
+        created_at=DT,
+        updated_at=DT,
+    )
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = model
+    session.execute.return_value = mock_result
+
+    async def run():
+        return await repo.edit(project_id=1, project_data=ProjectUpdate())
+
+    project = asyncio.run(run())
+
+    assert project is not None
+    assert project.title == "Stable Title"
+    session.add.assert_not_called()
+    session.commit.assert_not_called()
+    session.refresh.assert_not_called()
+
+
+def test_edit_project_rollback_when_commit_fails():
+    """edit should rollback and raise CreateProjectError when commit fails."""
+    session = make_session()
+    repo = make_repository(session)
+    model = ProjectModel(
+        id=1,
+        title="Rollback Title",
+        repository_url="https://github.com/test/rollback",
+        help_wanted=False,
+        created_at=DT,
+        updated_at=DT,
+    )
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = model
+    session.execute.return_value = mock_result
+    session.commit.side_effect = Exception("commit failed")
+
+    async def run():
+        with pytest.raises(CreateProjectError, match="Cannot edit project with id 1") as exc_info:
+            await repo.edit(project_id=1, project_data=ProjectUpdate(title="New Title"))
+        assert "commit failed" in str(exc_info.value)
+
+    asyncio.run(run())
+
+    session.add.assert_called_once_with(model)
+    session.commit.assert_called_once()
+    session.rollback.assert_called_once()

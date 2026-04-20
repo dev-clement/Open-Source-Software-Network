@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from app.projects.repository import ProjectRepository
-from app.projects.schemas import Project, ProjectCreate
+from app.projects.schemas import Project, ProjectCreate, ProjectUpdate
 from app.db.models import Project as ProjectModel
 from app.projects.exception import CreateProjectError
 from sqlmodel import select
@@ -59,6 +59,40 @@ class SqlRepository(ProjectRepository):
         if result_model is None:
             return None
         return Project.model_validate(result_model)
+
+    async def edit(self, project_id: int, project_data: ProjectUpdate) -> Project | None:
+        """Partially updates an existing project.
+
+        Args:
+            project_id: The ID of the project to update.
+            project_data: Payload containing the fields to update.
+
+        Returns:
+            The updated project, or None if not found.
+        """
+        statement = select(ProjectModel).where(ProjectModel.id == project_id)
+        result = await self.session.execute(statement)
+        project_model = result.scalar_one_or_none()
+        if project_model is None:
+            return None
+
+        updates = project_data.model_dump(exclude_unset=True)
+        if not updates:
+            return Project.model_validate(project_model)
+
+        for field_name, field_value in updates.items():
+            setattr(project_model, field_name, field_value)
+
+        self.session.add(project_model)
+        try:
+            await self.session.commit()
+            await self.session.refresh(project_model)
+            return Project.model_validate(project_model)
+        except Exception as exc:
+            await self.session.rollback()
+            raise CreateProjectError(
+                f"Cannot edit project with id {project_id}: {exc}"
+            ) from exc
     
     async def list(self, skip: int = 0, limit: int = 100) -> list[Project]:
         """
