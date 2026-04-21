@@ -2,7 +2,7 @@ from typing import Annotated, Optional
 from datetime import datetime
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, StringConstraints
-
+from app.auth.schemas import User
 
 MAX_BIGINT = 9_223_372_036_854_775_807
 
@@ -16,6 +16,8 @@ class ProjectBase(BaseModel):
     description: Optional[str] = None
     repository_url: AnyHttpUrl
     help_wanted: StrictBool = False
+    owner_id: int
+
 
 
 class ProjectCreate(ProjectBase):
@@ -35,3 +37,4 @@ class Project(ProjectBase):
     id: BigIntId
     created_at: datetime
     updated_at: datetime
+    owner_id: int

@@ -11,12 +11,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.settings import settings
 from app.db.session import DatabaseEngine
-from app.projects.schemas import Project, ProjectCreate
+from app.projects.schemas import Project, ProjectCreate, ProjectUpdate
 from app.projects.service import ProjectService
 from app.projects.sql_repository import SqlRepository
 from app.projects.sql_service import SQLProjectService
 from app.projects.exception import CreateProjectError
 from app.projects.exception import ProjectNotFoundError
+from app.projects.exception import ForbiddenError
+from app.auth.api import get_current_user
+from app.auth.schemas import User
 
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -150,3 +153,51 @@ async def get_project(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(pnfe),
         )
+
+
+@router.put("/edit/{project_id}")
+async def edit_project(
+    project_id: int,
+    project_data: ProjectUpdate,
+    project_service: ProjectService = Depends(get_project_service),
+    user: User = Depends(get_current_user)
+):
+    """Edit an existing project by id.
+
+    This endpoint delegates partial update logic to the project service and
+    returns the updated project when successful.
+
+    Args:
+        project_id: Identifier of the project to update.
+        project_data: Partial payload containing fields to update.
+        project_service: Request-scoped service responsible for update rules.
+
+    Returns:
+        The updated project.
+
+    Raises:
+        HTTPException: Returns a 404 Not Found response when no project exists
+            for the given id.
+        HTTPException: Returns a 409 Conflict response when update constraints
+            fail, such as repository URL conflicts or invalid update rules.
+    """
+    from fastapi import HTTPException
+    try:
+        return await project_service.edit(project_id=project_id, project_data=project_data, user=user)
+    except ProjectNotFoundError as pnfe:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(pnfe),
+        )
+    except CreateProjectError as cpe:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(cpe),
+        )
+    except ForbiddenError as fe:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(fe),
+        )
+    except HTTPException as he:
+        raise he

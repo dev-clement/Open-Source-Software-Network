@@ -45,6 +45,7 @@ def test_project_table_has_expected_columns():
         "help_wanted",
         "created_at",
         "updated_at",
+        "owner_id",
     }
 
 

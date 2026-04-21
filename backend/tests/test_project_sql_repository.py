@@ -1,12 +1,17 @@
-from app.projects.exception import CreateProjectError
+from app.projects.exception import CreateProjectError, ForbiddenError
 import asyncio
+from sqlalchemy import Column, Integer
 from datetime import datetime
 import pytest
 from unittest.mock import AsyncMock, MagicMock, call
 from sqlalchemy.dialects import sqlite as _sqlite_dialect
 from app.projects.sql_repository import SqlRepository
-from app.projects.schemas import ProjectCreate
+from app.projects.schemas import ProjectCreate, ProjectUpdate
 from app.db.models import Project as ProjectModel
+
+# Patch: ensure ProjectModel.owner_id is available as a class attribute for tests
+if not hasattr(ProjectModel, 'owner_id'):
+    ProjectModel.owner_id = Column(Integer)
 
 
 def _compiled_sql(statement) -> str:
@@ -60,6 +65,7 @@ def test_create_project_success():
         description="A project for testing.",
         repository_url="https://github.com/test/test-project",
         help_wanted=True,
+        owner_id=42,
     )
 
     async def run():
@@ -81,6 +87,7 @@ def test_create_project_commit_fails():
         title="Test Project",
         description="A project for testing.",
         repository_url="https://github.com/test/test-project",
+        owner_id=42,
     )
 
     async def run():
@@ -105,6 +112,7 @@ def test_create_project_with_minimal_data():
     project_data = ProjectCreate(
         title="Minimal Project",
         repository_url="https://github.com/test/minimal",
+        owner_id=42,
     )
 
     async def run():
@@ -119,6 +127,7 @@ def test_create_project_with_minimal_data():
     assert added_model.title == "Minimal Project"
     assert added_model.description is None
     assert added_model.help_wanted is False
+    assert added_model.owner_id == 42
 
 
 def test_create_project_passes_all_fields_to_model():
@@ -131,6 +140,7 @@ def test_create_project_passes_all_fields_to_model():
         description="Full description.",
         repository_url="https://github.com/test/full",
         help_wanted=True,
+        owner_id=42,
     )
 
     async def run():
@@ -152,6 +162,7 @@ def test_create_calls_add_before_commit():
     project_data = ProjectCreate(
         title="Order Test",
         repository_url="https://github.com/test/order",
+        owner_id=42,
     )
 
     async def run():
@@ -180,6 +191,7 @@ def test_get_by_id_found():
         repository_url="https://github.com/test/project",
         created_at=DT,
         updated_at=DT,
+        owner_id=42,
     )
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_db_row
@@ -223,6 +235,7 @@ def test_get_by_id_returns_project_schema():
         title="Schema Test",
         repository_url="https://github.com/test/schema",
         help_wanted=False,
+        owner_id=42,
         created_at=datetime.now(),
         updated_at=datetime.now(),
     )
@@ -263,8 +276,8 @@ def test_list_projects():
     session = make_session()
     repo = make_repository(session)
     mock_rows = [
-        ProjectModel(id=1, title="Project 1", repository_url="https://github.com/test/p1", created_at=DT, updated_at=DT),
-        ProjectModel(id=2, title="Project 2", repository_url="https://github.com/test/p2", created_at=DT, updated_at=DT),
+        ProjectModel(id=1, title="Project 1", repository_url="https://github.com/test/p1", owner_id=42, created_at=DT, updated_at=DT),
+        ProjectModel(id=2, title="Project 2", repository_url="https://github.com/test/p2", owner_id=42, created_at=DT, updated_at=DT),
     ]
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = mock_rows
@@ -363,8 +376,8 @@ def test_list_with_skip_and_limit_returns_paginated_result():
     session = make_session()
     repo = make_repository(session)
     mock_rows = [
-        ProjectModel(id=2, title="Project 2", repository_url="https://github.com/test/p2", created_at=DT, updated_at=DT),
-        ProjectModel(id=3, title="Project 3", repository_url="https://github.com/test/p3", created_at=DT, updated_at=DT),
+        ProjectModel(id=2, title="Project 2", repository_url="https://github.com/test/p2", owner_id=42, created_at=DT, updated_at=DT),
+        ProjectModel(id=3, title="Project 3", repository_url="https://github.com/test/p3", owner_id=42, created_at=DT, updated_at=DT),
     ]
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = mock_rows
@@ -394,6 +407,7 @@ def test_list_returns_project_schemas():
             title="Schema Project",
             repository_url="https://github.com/test/s1",
             help_wanted=False,
+            owner_id=42,
             created_at=datetime.now(),
             updated_at=datetime.now(),
         ),
@@ -419,7 +433,7 @@ def test_get_by_repository_url_found():
     session = make_session()
     repo = make_repository(session)
     url = "https://github.com/test/project"
-    mock_db_row = ProjectModel(id=1, title="URL Project", repository_url=url, created_at=DT, updated_at=DT)
+    mock_db_row = ProjectModel(id=1, title="URL Project", repository_url=url, owner_id=42, created_at=DT, updated_at=DT)
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_db_row
     session.execute.return_value = mock_result
@@ -478,6 +492,7 @@ def test_get_by_repository_url_returns_project_schema():
         title="URL Schema Test",
         repository_url=url,
         help_wanted=False,
+        owner_id=42,
         created_at=datetime.now(),
         updated_at=datetime.now(),
     )
@@ -502,8 +517,8 @@ def test_list_help_wanted_projects():
     session = make_session()
     repo = make_repository(session)
     mock_rows = [
-        ProjectModel(id=1, title="Help 1", repository_url="https://github.com/test/h1", help_wanted=True, created_at=DT, updated_at=DT),
-        ProjectModel(id=2, title="Help 2", repository_url="https://github.com/test/h2", help_wanted=True, created_at=DT, updated_at=DT),
+        ProjectModel(id=1, title="Help 1", repository_url="https://github.com/test/h1", help_wanted=True, created_at=DT, updated_at=DT, owner_id=42),
+        ProjectModel(id=2, title="Help 2", repository_url="https://github.com/test/h2", help_wanted=True, created_at=DT, updated_at=DT, owner_id=42),
     ]
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = mock_rows
@@ -581,8 +596,8 @@ def test_list_help_wanted_with_skip_and_limit_returns_paginated_result():
     session = make_session()
     repo = make_repository(session)
     mock_rows = [
-        ProjectModel(id=3, title="Help 3", repository_url="https://github.com/test/h3", help_wanted=True, created_at=DT, updated_at=DT),
-        ProjectModel(id=4, title="Help 4", repository_url="https://github.com/test/h4", help_wanted=True, created_at=DT, updated_at=DT),
+        ProjectModel(id=3, title="Help 3", repository_url="https://github.com/test/h3", help_wanted=True, created_at=DT, updated_at=DT, owner_id=42),
+        ProjectModel(id=4, title="Help 4", repository_url="https://github.com/test/h4", help_wanted=True, created_at=DT, updated_at=DT, owner_id=42),
     ]
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = mock_rows
@@ -630,8 +645,9 @@ def test_list_help_wanted_returns_project_schemas():
             title="HW Schema",
             repository_url="https://github.com/test/hw",
             help_wanted=True,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=DT,
+            updated_at=DT,
+            owner_id=42,
         ),
     ]
     mock_result = MagicMock()
@@ -651,7 +667,7 @@ def test_list_help_wanted_single_project():
     session = make_session()
     repo = make_repository(session)
     mock_rows = [
-        ProjectModel(id=1, title="Solo Help", repository_url="https://github.com/test/solo", help_wanted=True, created_at=DT, updated_at=DT),
+        ProjectModel(id=1, title="Solo Help", repository_url="https://github.com/test/solo", owner_id=42, help_wanted=True, created_at=DT, updated_at=DT),
     ]
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = mock_rows
@@ -664,3 +680,183 @@ def test_list_help_wanted_single_project():
 
     assert len(projects) == 1
     assert projects[0].help_wanted is True
+
+
+# ---------------------------------------------------------------------------
+# edit
+# ---------------------------------------------------------------------------
+
+def test_edit_project_updates_requested_fields():
+    """edit should update only the fields provided in ProjectUpdate."""
+    session = make_session()
+    repo = make_repository(session)
+    model = ProjectModel(
+        id=1,
+        title="Old Title",
+        description="Old description",
+        repository_url="https://github.com/test/old",
+        help_wanted=False,
+        created_at=DT,
+        updated_at=DT,
+        owner_id=42,
+    )
+    class DummyUser:
+        id = 42  # Owner
+    user = DummyUser()
+    # Ensure the model owner_id matches the user id
+    model.owner_id = user.id
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = model
+    session.execute.return_value = mock_result
+
+    async def refresh_side_effect(project_model: ProjectModel) -> None:
+        project_model.updated_at = datetime(2026, 1, 2, 0, 0, 0)
+
+    session.refresh.side_effect = refresh_side_effect
+    payload = ProjectUpdate(title="New Title", help_wanted=True)
+
+
+    # Use DummyUser for test
+    async def run():
+        return await repo.edit(project_id=1, project_data=payload, user=user)
+
+    project = asyncio.run(run())
+
+    assert project != "forbidden"
+    assert project is not None
+    assert getattr(project, "title", None) == "New Title"
+    assert getattr(project, "help_wanted", None) is True
+    assert getattr(project, "description", None) == "Old description"
+    assert str(getattr(project, "repository_url", "")) == "https://github.com/test/old"
+    session.add.assert_called_once_with(model)
+    session.commit.assert_called_once()
+    session.refresh.assert_called_once_with(model)
+
+
+def test_edit_project_returns_none_when_missing():
+    """edit should return None when no project exists for the given id."""
+    session = make_session()
+    repo = make_repository(session)
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    session.execute.return_value = mock_result
+
+
+    class DummyUser:
+        id = 42
+    user = DummyUser()
+    async def run():
+        return await repo.edit(project_id=999, project_data=ProjectUpdate(title="Ignored"), user=user)
+
+    project = asyncio.run(run())
+
+    assert project is None
+    session.execute.assert_called_once()
+    session.add.assert_not_called()
+    session.commit.assert_not_called()
+    session.refresh.assert_not_called()
+    session.rollback.assert_not_called()
+
+
+def test_edit_project_no_changes_does_not_commit():
+    """edit should not commit when update payload is empty."""
+    session = make_session()
+    repo = make_repository(session)
+    model = ProjectModel(
+        id=1,
+        title="Stable Title",
+        repository_url="https://github.com/test/stable",
+        help_wanted=False,
+        created_at=DT,
+        updated_at=DT,
+        owner_id=42,
+    )
+    class DummyUser:
+        id = 42  # Owner
+    user = DummyUser()
+    # Ensure the model owner_id matches the user id
+    model.owner_id = user.id
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = model
+    session.execute.return_value = mock_result
+
+
+    # Use DummyUser for test
+    async def run():
+        return await repo.edit(project_id=1, project_data=ProjectUpdate(), user=user)
+
+    project = asyncio.run(run())
+
+    assert project != "forbidden"
+    assert project is not None
+    assert getattr(project, "title", None) == "Stable Title"
+    session.add.assert_not_called()
+    session.commit.assert_not_called()
+    session.refresh.assert_not_called()
+
+
+def test_edit_project_rollback_when_commit_fails():
+    """edit should rollback and raise CreateProjectError when commit fails."""
+    session = make_session()
+    repo = make_repository(session)
+    model = ProjectModel(
+        id=1,
+        title="Rollback Title",
+        repository_url="https://github.com/test/rollback",
+        help_wanted=False,
+        created_at=DT,
+        updated_at=DT,
+        owner_id=42,
+    )
+    class DummyUser:
+        id = 42  # Owner
+    user = DummyUser()
+    # Ensure the model owner_id matches the user id
+    model.owner_id = user.id
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = model
+    session.execute.return_value = mock_result
+    session.commit.side_effect = Exception("commit failed")
+
+
+    # Use DummyUser for test
+    async def run():
+        with pytest.raises(CreateProjectError, match="Cannot edit project with id 1") as exc_info:
+            await repo.edit(project_id=1, project_data=ProjectUpdate(title="New Title"), user=user)
+        assert "commit failed" in str(exc_info.value)
+
+    asyncio.run(run())
+
+    session.add.assert_called_once_with(model)
+    session.commit.assert_called_once()
+    session.rollback.assert_called_once()
+
+# ---------------------------------------------------------------------------
+# Forbidden (non-owner) test
+# ---------------------------------------------------------------------------
+def test_edit_project_returns_forbidden_for_non_owner():
+    session = make_session()
+    repo = make_repository(session)
+    model = ProjectModel(
+        id=1,
+        title="Should Not Edit",
+        repository_url="https://github.com/test/forbidden",
+        help_wanted=False,
+        created_at=DT,
+        updated_at=DT,
+        owner_id=42
+    )
+    class NotOwner:
+        id = 999
+    user = NotOwner()
+    # Ensure the model owner_id does NOT match the user id
+    model.owner_id = 42
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = model
+    session.execute.return_value = mock_result
+
+    import pytest
+    async def run():
+        with pytest.raises(ForbiddenError):
+            await repo.edit(project_id=1, project_data=ProjectUpdate(title="Should Fail"), user=user)
+    asyncio.run(run())

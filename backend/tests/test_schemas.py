@@ -332,6 +332,8 @@ class TestProject:
             repository_url="https://github.com/org/repo",
             created_at=NOW,
             updated_at=NOW,
+            owner_id=42,
+            owner=None,
         )
         assert p.id == 1
 
@@ -340,16 +342,17 @@ class TestProject:
             Project(
                 title="OSS Tool",
                 repository_url="https://github.com/org/repo",
+                owner_id=42,
                 created_at=NOW,
                 updated_at=NOW,
             )
 
     def test_id_is_int_type(self):
-        p = Project(id=1, title="X", repository_url="https://github.com/o/r", created_at=NOW, updated_at=NOW)
+        p = Project(id=1, title="X", repository_url="https://github.com/o/r", owner_id=42, created_at=NOW, updated_at=NOW)
         assert isinstance(p.id, int)
 
     def test_timestamps_are_datetime_type(self):
-        p = Project(id=1, title="X", repository_url="https://github.com/o/r", created_at=NOW, updated_at=NOW)
+        p = Project(id=1, title="X", repository_url="https://github.com/o/r", owner_id=42, created_at=NOW, updated_at=NOW)
         assert isinstance(p.created_at, datetime)
         assert isinstance(p.updated_at, datetime)
 
@@ -358,15 +361,15 @@ class TestProject:
 
     def test_id_invalid_string_raises(self):
         with pytest.raises(ValidationError):
-            Project(id="NaN", title="X", repository_url="https://github.com/o/r", created_at=NOW, updated_at=NOW)
+            Project(id="NaN", title="X", repository_url="https://github.com/o/r", owner_id=42, created_at=NOW, updated_at=NOW)
 
     # --- id min / max ---
     def test_id_min_positive(self):
-        p = Project(id=MIN_POSITIVE_INT, title="X", repository_url="https://github.com/o/r", created_at=NOW, updated_at=NOW)
+        p = Project(id=MIN_POSITIVE_INT, title="X", repository_url="https://github.com/o/r", owner_id=42,created_at=NOW, updated_at=NOW)
         assert p.id == MIN_POSITIVE_INT
 
     def test_id_max_biginteger(self):
-        p = Project(id=MAX_BIGINT, title="X", repository_url="https://github.com/o/r", created_at=NOW, updated_at=NOW)
+        p = Project(id=MAX_BIGINT, title="X", repository_url="https://github.com/o/r", owner_id=42, created_at=NOW, updated_at=NOW)
         assert p.id == MAX_BIGINT
 
 

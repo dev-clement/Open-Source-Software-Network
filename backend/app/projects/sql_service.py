@@ -1,8 +1,9 @@
 from typing import List
 
 from app.projects.sql_repository import SqlRepository
+from app.auth.schemas import User
 from .service import ProjectService
-from .schemas import ProjectCreate, Project
+from .schemas import ProjectCreate, Project, ProjectUpdate
 from .exception import ProjectNotFoundError, CreateProjectError
 
 class SQLProjectService(ProjectService):
@@ -65,6 +66,41 @@ class SQLProjectService(ProjectService):
         if project is None:
             raise ProjectNotFoundError(project_id)
         return project
+
+    async def edit(self, project_id: int, project_data: ProjectUpdate, user: User) -> Project:
+        """Partially update an existing project.
+
+        Args:
+            project_id: The unique identifier of the project to update.
+            project_data: Payload with one or more fields to update.
+
+        Returns:
+            The updated project.
+
+        Raises:
+            ProjectNotFoundError: If no project with the given id exists.
+            CreateProjectError: If the requested repository_url does not exist
+                or conflicts with another project.
+        """
+        project = await self.repository.get_by_id(project_id)
+        if project is None:
+            raise ProjectNotFoundError(project_id)
+
+        if project_data.repository_url is not None:
+            existing_project = await self.repository.get_by_repository_url(project_data.repository_url)
+            if existing_project is None:
+                raise CreateProjectError(
+                    f"""Cannot edit project with repository URL '{project_data.repository_url}' because it does not exist."""
+                )
+            if existing_project is not None and existing_project.id != project_id:
+                raise CreateProjectError(
+                    f"""A project with the repository URL '{project_data.repository_url}' already exists."""
+                )
+
+        updated_project = await self.repository.edit(project_id=project_id, project_data=project_data, user=user)
+        if updated_project is None:
+            raise ProjectNotFoundError(project_id)
+        return updated_project
 
     async def list_help_wanted(self, skip: int = 0, limit: int = 100) -> List[Project]:
         """List help-wanted projects with optional pagination.

@@ -7,7 +7,9 @@ Implementations will use SQLModel for database operations.
 from abc import ABC, abstractmethod
 from typing import Optional, List
 
-from app.projects.schemas import Project, ProjectCreate
+
+from app.projects.schemas import Project, ProjectCreate, ProjectUpdate
+from app.auth.schemas import User
 
 
 class ProjectRepository(ABC):
@@ -32,7 +34,7 @@ class ProjectRepository(ABC):
         :return: The stored project schema enriched with generated fields such
             as identifiers or timestamps.
         """
-        raise NotImplementedError
+        ...
     
     @abstractmethod
     async def get_by_id(self, project_id: int) -> Optional[Project]:
@@ -42,7 +44,7 @@ class ProjectRepository(ABC):
         :return: The matching project schema when a record exists, otherwise
             ``None``.
         """
-        raise NotImplementedError
+        ...
     
     @abstractmethod
     async def list(self, skip: int = 0, limit: int = 100) -> List[Project]:
@@ -54,7 +56,22 @@ class ProjectRepository(ABC):
         :return: A list of project schemas ordered according to the
             implementation's default listing strategy.
         """
-        raise NotImplementedError
+        ...
+
+    @abstractmethod
+    async def edit(self, project_id: int, project_data: ProjectUpdate, user: User) -> Optional[Project]:
+        """Apply partial updates to a project and return the refreshed project.
+
+        Implementations should mutate only the fields explicitly present in
+        ``project_data`` and persist the changes. When no project exists for
+        the provided id, ``None`` should be returned.
+
+        :param project_id: Database identifier of the project to update.
+        :param project_data: Partial payload containing only fields to update.
+        :return: The refreshed project schema, or ``None`` if the target
+            project does not exist.
+        """
+        ...
     
     @abstractmethod
     async def get_by_repository_url(self, url: str) -> Optional[Project]:
@@ -67,7 +84,7 @@ class ProjectRepository(ABC):
         :return: The matching project schema when a record exists, otherwise
             ``None``.
         """
-        raise NotImplementedError
+        ...
     
     @abstractmethod
     async def list_help_wanted(self, skip: int = 0, limit: int = 100) -> List[Project]:
@@ -80,4 +97,4 @@ class ProjectRepository(ABC):
         :return: A list of project schemas whose ``help_wanted`` flag is set
             to ``True``.
         """
-        raise NotImplementedError
+        ...
