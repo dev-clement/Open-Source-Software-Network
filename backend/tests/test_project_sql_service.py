@@ -36,6 +36,7 @@ def make_project(**kwargs) -> Project:
         help_wanted=False,
         created_at=DT,
         updated_at=DT,
+        owner_id=42,
     )
     defaults.update(kwargs)
     return Project(**defaults)
@@ -87,6 +88,7 @@ def test_create_project_success():
         description="Brand new project.",
         repository_url="https://github.com/test/new-project",
         help_wanted=False,
+        owner_id=42,
     )
     expected = make_project(title=payload.title, repository_url=str(payload.repository_url))
     repository.get_by_repository_url.return_value = None
@@ -110,6 +112,7 @@ def test_create_project_raises_when_url_already_exists():
         title="Duplicate Project",
         repository_url="https://github.com/test/duplicate",
         help_wanted=False,
+        owner_id=42,
     )
     repository.get_by_repository_url.return_value = make_project(
         repository_url=str(payload.repository_url)
@@ -132,6 +135,7 @@ def test_create_error_message_contains_repository_url():
     payload = ProjectCreate(
         title="Duplicate Project",
         repository_url="https://github.com/test/duplicate",
+        owner_id=42,
         help_wanted=False,
     )
     repository.get_by_repository_url.return_value = make_project(
@@ -154,6 +158,7 @@ def test_create_calls_lookup_before_create():
         title="Ordered Project",
         repository_url="https://github.com/test/ordered",
         help_wanted=False,
+        owner_id=42,
     )
     repository.get_by_repository_url.return_value = None
     repository.create.return_value = make_project(repository_url=str(payload.repository_url))
@@ -177,6 +182,7 @@ def test_create_propagates_lookup_exception():
         title="Lookup Failure",
         repository_url="https://github.com/test/lookup-failure",
         help_wanted=False,
+        owner_id=42,
     )
     repository.get_by_repository_url.side_effect = RuntimeError("lookup failed")
 
@@ -196,6 +202,7 @@ def test_create_propagates_create_exception():
     payload = ProjectCreate(
         title="Persist Failure",
         repository_url="https://github.com/test/persist-failure",
+        owner_id=42,
         help_wanted=False,
     )
     repository.get_by_repository_url.return_value = None
@@ -215,6 +222,7 @@ def test_create_passes_same_payload_instance_to_repository():
     payload = ProjectCreate(
         title="Identity Project",
         repository_url="https://github.com/test/identity",
+        owner_id=42,
         help_wanted=False,
     )
     repository.get_by_repository_url.return_value = None
@@ -545,7 +553,9 @@ def test_edit_updates_project_when_found():
     repository = make_repository()
     service = make_service(repository)
     payload = ProjectUpdate(title="Updated Title")
-    user = object()  # Dummy user object for test
+    class DummyUser:
+            id = 42
+    user = DummyUser()  # Dummy user object for test
     repository.get_by_id.return_value = make_project(id=1)
     expected = make_project(id=1, title="Updated Title")
     repository.edit.return_value = expected
@@ -654,7 +664,9 @@ def test_edit_skips_url_lookup_when_repository_url_not_updated():
     repository = make_repository()
     service = make_service(repository)
     payload = ProjectUpdate(help_wanted=True)
-    user = object()
+    class DummyUser:
+        id = 42
+    user = DummyUser()  # Dummy user object for test
     repository.get_by_id.return_value = make_project(id=3)
     repository.edit.return_value = make_project(id=3, help_wanted=True)
 

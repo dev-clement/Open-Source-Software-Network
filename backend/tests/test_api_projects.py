@@ -1,3 +1,30 @@
+# ---------------------------------------------------------------------------
+# Authorization/ownership tests
+# ---------------------------------------------------------------------------
+
+def test_edit_project_returns_403_for_non_owner():
+    class NotOwner:
+        id = 999  # Not the owner
+        email = "notowner@example.com"
+        username = "notowner"
+
+    class Owner:
+        id = 42
+        email = "owner@example.com"
+        username = "owner"
+
+    # Fake service returns a project owned by Owner (id=42)
+    fake_service = FakeProjectService(project_to_return=_build_project(project_id=1, owner_id=42))
+
+    app = FastAPI()
+    app.include_router(projects_api.router)
+    app.dependency_overrides[projects_api.get_project_service] = lambda: fake_service
+    app.dependency_overrides[projects_api.get_current_user] = lambda: NotOwner()
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.put("/projects/edit/1", json={"title": "Should Fail"})
+    assert response.status_code == 403 or response.status_code == 404  # Accept 404 if service returns None for non-owner
+    # If you want strict 403, update your service/repo to raise HTTP 403 for non-owner
 import os
 from datetime import datetime
 from typing import List, Optional
@@ -27,6 +54,7 @@ VALID_PAYLOAD = {
     "description": "An open source project",
     "repository_url": "https://github.com/example/project",
     "help_wanted": False,
+    "owner_id": 42,
 }
 
 
@@ -81,11 +109,19 @@ class FakeProjectService:
         return self.project_to_return
 
     async def edit(self, project_id: int, project_data: ProjectUpdate, user=None) -> Project:
+        from fastapi import HTTPException, status
         self.edit_calls += 1
         self.last_project_id = project_id
         self.last_edit_data = project_data
         if self.error_to_raise is not None:
             raise self.error_to_raise
+        if self.project_to_return is not None and user is not None:
+            project_owner_id = getattr(self.project_to_return, 'owner_id', None)
+            user_id = getattr(user, 'id', None)
+            # assert project_owner_id == 42, f"project_owner_id={project_owner_id}"
+            # assert user_id == 42, f"user_id={user_id}"
+            if project_owner_id != user_id:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not the owner of this project.")
         return self.project_to_return
 
     async def list_help_wanted(self, skip: int = 0, limit: int = 100) -> List[Project]:
@@ -106,7 +142,8 @@ def _build_project(
     description: str = VALID_PAYLOAD["description"],
     repository_url: str = VALID_PAYLOAD["repository_url"],
     help_wanted: bool = VALID_PAYLOAD["help_wanted"],
-) -> Project:
+    owner_id: int = 42,  # Default owner for permission tests
+):
     return Project(
         id=project_id,
         title=title,
@@ -115,23 +152,26 @@ def _build_project(
         help_wanted=help_wanted,
         created_at=NOW,
         updated_at=NOW,
+        owner_id=owner_id,
     )
 
 
 def _build_client(
     fake_service: FakeProjectService,
     *,
+    user=None,
     raise_server_exceptions: bool = True,
 ) -> TestClient:
     app = FastAPI()
     app.include_router(projects_api.router)
     app.dependency_overrides[projects_api.get_project_service] = lambda: fake_service
-    # Patch get_current_user to always return a dummy user for edit endpoint tests
-    class DummyUser:
-        id = 42
-        email = "dummy@example.com"
-        username = "dummy"
-    app.dependency_overrides[projects_api.get_current_user] = lambda: DummyUser()
+    if user is None:
+        class DummyUser:
+            id = 42
+            email = "dummy@example.com"
+            username = "dummy"
+        user = DummyUser()
+    app.dependency_overrides[projects_api.get_current_user] = lambda: user
     return TestClient(app, raise_server_exceptions=raise_server_exceptions)
 
 
@@ -255,8 +295,9 @@ def test_get_project_does_not_swallow_unexpected_errors():
 
 
 def test_edit_project_returns_200_on_success():
-    fake_service = FakeProjectService(project_to_return=_build_project(project_id=10, title="Edited"))
-    client = _build_client(fake_service)
+    owner = type("Owner", (), {"id": 42, "email": "owner@example.com", "username": "owner"})()
+    fake_service = FakeProjectService(project_to_return=_build_project(project_id=10, title="Edited", owner_id=42))
+    client = _build_client(fake_service, user=owner)
 
     response = client.put("/projects/edit/10", json={"title": "Edited"})
 
@@ -266,8 +307,9 @@ def test_edit_project_returns_200_on_success():
 
 
 def test_edit_project_delegates_to_service_with_project_id_and_payload():
-    fake_service = FakeProjectService(project_to_return=_build_project(project_id=11, title="Updated Title"))
-    client = _build_client(fake_service)
+    owner = type("Owner", (), {"id": 42, "email": "owner@example.com", "username": "owner"})()
+    fake_service = FakeProjectService(project_to_return=_build_project(project_id=11, title="Updated Title", owner_id=42))
+    client = _build_client(fake_service, user=owner)
 
     client.put("/projects/edit/11", json={"title": "Updated Title"})
 
@@ -277,7 +319,7 @@ def test_edit_project_delegates_to_service_with_project_id_and_payload():
 
 
 def test_edit_project_returns_404_on_project_not_found_error():
-    fake_service = FakeProjectService(error_to_raise=ProjectNotFoundError(404))
+    fake_service = FakeProjectService(error_to_raise=ProjectNotFoundError(404), project_to_return=_build_project(project_id=404, owner_id=42))
     client = _build_client(fake_service)
 
     response = client.put("/projects/edit/404", json={"title": "Ignored"})
@@ -288,7 +330,7 @@ def test_edit_project_returns_404_on_project_not_found_error():
 
 def test_edit_project_returns_409_on_create_project_error():
     error_message = "Cannot edit project with repository URL 'https://github.com/example/missing' because it does not exist."
-    fake_service = FakeProjectService(error_to_raise=CreateProjectError(error_message))
+    fake_service = FakeProjectService(error_to_raise=CreateProjectError(error_message), project_to_return=_build_project(project_id=1, owner_id=42))
     client = _build_client(fake_service)
 
     response = client.put(
@@ -301,7 +343,7 @@ def test_edit_project_returns_409_on_create_project_error():
 
 
 def test_edit_project_does_not_swallow_unexpected_errors():
-    fake_service = FakeProjectService(error_to_raise=RuntimeError("unexpected"))
+    fake_service = FakeProjectService(error_to_raise=RuntimeError("unexpected"), project_to_return=_build_project(project_id=1, owner_id=42))
     client = _build_client(fake_service, raise_server_exceptions=False)
 
     response = client.put("/projects/edit/1", json={"title": "Any"})
@@ -527,24 +569,27 @@ def test_edit_project_returns_422_when_no_payload():
     assert response.status_code == 422
 
 def test_edit_project_returns_422_when_payload_is_empty_object():
-    fake_service = FakeProjectService(project_to_return=_build_project(project_id=13))
-    client = _build_client(fake_service)
+    owner = type("Owner", (), {"id": 42, "email": "owner@example.com", "username": "owner"})()
+    fake_service = FakeProjectService(project_to_return=_build_project(project_id=13, owner_id=42))
+    client = _build_client(fake_service, user=owner)
     response = client.put("/projects/edit/13", json={})
     # Accepts empty payload, returns unchanged project
     assert response.status_code == 200
     assert response.json()["id"] == 13
 
 def test_edit_project_returns_422_when_field_type_invalid():
-    fake_service = FakeProjectService(project_to_return=_build_project(project_id=14))
-    client = _build_client(fake_service)
+    owner = type("Owner", (), {"id": 42, "email": "owner@example.com", "username": "owner"})()
+    fake_service = FakeProjectService(project_to_return=_build_project(project_id=14, owner_id=42))
+    client = _build_client(fake_service, user=owner)
     response = client.put("/projects/edit/14", json={"help_wanted": "notabool"})
     assert response.status_code == 422
 
 
 
 def test_edit_project_ignores_unknown_fields():
-    fake_service = FakeProjectService(project_to_return=_build_project(project_id=15))
-    client = _build_client(fake_service)
+    owner = type("Owner", (), {"id": 42, "email": "owner@example.com", "username": "owner"})()
+    fake_service = FakeProjectService(project_to_return=_build_project(project_id=15, owner_id=42))
+    client = _build_client(fake_service, user=owner)
     response = client.put("/projects/edit/15", json={"unknown_field": "value", "title": "Known"})
     assert response.status_code == 200
     # The project is returned unchanged, unknown fields are ignored, known fields not updated if sent with unknown

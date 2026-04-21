@@ -195,8 +195,8 @@ def test_database_engine_init_db_allows_project_insert(tmp_path):
         async with db_engine.engine.begin() as conn:
             await conn.execute(
                 text(
-                    "INSERT INTO projects (id, title, repository_url, help_wanted) "
-                    "VALUES (1, 'oss', 'https://github.com/example/oss', 1)"
+                    "INSERT INTO projects (id, title, repository_url, help_wanted, owner_id) "
+                    "VALUES (1, 'oss', 'https://github.com/example/oss', 1, 1)"
                 )
             )
             result = await conn.execute(text("SELECT COUNT(*) FROM projects"))
