@@ -1,3 +1,7 @@
+
+class ForbiddenError(Exception):
+    """Raised when a user is not authorized to perform an action (HTTP 403)."""
+
 class ProjectNotFoundError(Exception):
     """Raised when a requested project does not exist in the database.
 

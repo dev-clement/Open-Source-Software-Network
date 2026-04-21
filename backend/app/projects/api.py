@@ -17,6 +17,7 @@ from app.projects.sql_repository import SqlRepository
 from app.projects.sql_service import SQLProjectService
 from app.projects.exception import CreateProjectError
 from app.projects.exception import ProjectNotFoundError
+from app.projects.exception import ForbiddenError
 from app.auth.api import get_current_user
 from app.auth.schemas import User
 
@@ -154,7 +155,7 @@ async def get_project(
         )
 
 
-@router.put("/edit/{project_id}", response_model=Project)
+@router.put("/edit/{project_id}")
 async def edit_project(
     project_id: int,
     project_data: ProjectUpdate,
@@ -180,6 +181,7 @@ async def edit_project(
         HTTPException: Returns a 409 Conflict response when update constraints
             fail, such as repository URL conflicts or invalid update rules.
     """
+    from fastapi import HTTPException
     try:
         return await project_service.edit(project_id=project_id, project_data=project_data, user=user)
     except ProjectNotFoundError as pnfe:
@@ -192,3 +194,10 @@ async def edit_project(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(cpe),
         )
+    except ForbiddenError as fe:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(fe),
+        )
+    except HTTPException as he:
+        raise he

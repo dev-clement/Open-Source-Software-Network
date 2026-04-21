@@ -35,3 +35,4 @@ class Project(ProjectBase):
     id: BigIntId
     created_at: datetime
     updated_at: datetime
+    owner_id: int

@@ -16,7 +16,7 @@ class ProjectBase(BaseModel):
     description: Optional[str] = None
     repository_url: AnyHttpUrl
     help_wanted: StrictBool = False
-    owner: User = None
+    owner_id: int
 
 
 
@@ -37,3 +37,4 @@ class Project(ProjectBase):
     id: BigIntId
     created_at: datetime
     updated_at: datetime
+    owner_id: int

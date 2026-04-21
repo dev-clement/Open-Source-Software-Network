@@ -90,11 +90,11 @@ class SQLProjectService(ProjectService):
             existing_project = await self.repository.get_by_repository_url(project_data.repository_url)
             if existing_project is None:
                 raise CreateProjectError(
-                    f'''Cannot edit project with repository URL '{project_data.repository_url}' because it does not exist.'''
+                    f"""Cannot edit project with repository URL '{project_data.repository_url}' because it does not exist."""
                 )
             if existing_project is not None and existing_project.id != project_id:
                 raise CreateProjectError(
-                    f'''A project with the repository URL '{project_data.repository_url}' already exists.'''
+                    f"""A project with the repository URL '{project_data.repository_url}' already exists."""
                 )
 
         updated_project = await self.repository.edit(project_id=project_id, project_data=project_data, user=user)

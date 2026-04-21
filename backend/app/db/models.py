@@ -82,6 +82,7 @@ class Project(SQLModel, table=True):
         ),
     )
 
+    owner_id: int = Field(sa_column=Column(BigInteger, nullable=False))
     contributions: List["Contribution"] = Relationship(back_populates="project")
 
 
