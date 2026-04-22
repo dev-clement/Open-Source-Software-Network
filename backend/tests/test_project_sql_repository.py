@@ -23,9 +23,7 @@ def _compiled_sql(statement) -> str:
         )
     )
 
-
 DT = datetime(2026, 1, 1, 0, 0, 0)
-
 
 def make_session() -> AsyncMock:
     """Create a fresh mock database session."""
@@ -49,7 +47,6 @@ def configure_refresh_with_db_defaults(session: AsyncMock) -> None:
         model.updated_at = DT
 
     session.refresh.side_effect = refresh_side_effect
-
 
 # ---------------------------------------------------------------------------
 # create
@@ -77,7 +74,6 @@ def test_create_project_success():
     session.commit.assert_called_once()
     session.refresh.assert_called_once()
 
-
 def test_create_project_commit_fails():
     """Test that a rollback is triggered when commit raises."""
     session = make_session()
@@ -102,7 +98,6 @@ def test_create_project_commit_fails():
     session.commit.assert_called_once()
     session.rollback.assert_called_once()
     session.refresh.assert_not_called()
-
 
 def test_create_project_with_minimal_data():
     """Test creating a project with only the required fields."""
@@ -129,7 +124,6 @@ def test_create_project_with_minimal_data():
     assert added_model.help_wanted is False
     assert added_model.owner_id == 42
 
-
 def test_create_project_passes_all_fields_to_model():
     """Test that all fields from ProjectCreate are forwarded to the db model."""
     session = make_session()
@@ -152,7 +146,6 @@ def test_create_project_passes_all_fields_to_model():
     assert added_model.title == "Full Project"
     assert added_model.description == "Full description."
     assert added_model.help_wanted is True
-
 
 def test_create_calls_add_before_commit():
     """Test that add is called before commit during creation."""
@@ -860,3 +853,113 @@ def test_edit_project_returns_forbidden_for_non_owner():
         with pytest.raises(ForbiddenError):
             await repo.edit(project_id=1, project_data=ProjectUpdate(title="Should Fail"), user=user)
     asyncio.run(run())
+# ---------------------------------------------------------------------------
+# delete_by_id and delete_by_repository_url
+# ---------------------------------------------------------------------------
+
+def make_user(user_id):
+    class DummyUser:
+        id = user_id
+    return DummyUser()
+
+def test_delete_by_id_not_found():
+    """delete_by_id returns False if project does not exist."""
+    session = make_session()
+    repo = make_repository(session)
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    session.execute.return_value = mock_result
+    user = make_user(42)
+    async def run():
+        return await repo.delete_by_id(999, user)
+    result = asyncio.run(run())
+    assert result is False
+    session.execute.assert_called_once()
+    session.delete.assert_not_called()
+    session.commit.assert_not_called()
+
+def test_delete_by_id_forbidden():
+    """delete_by_id raises ForbiddenError if user is not owner."""
+    session = make_session()
+    repo = make_repository(session)
+    project_id = 1
+    mock_project = ProjectModel(id=project_id, title="Test", repository_url="url", owner_id=99, created_at=DT, updated_at=DT)
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = mock_project
+    session.execute.return_value = mock_result
+    user = make_user(42)
+    async def run():
+        with pytest.raises(ForbiddenError):
+            await repo.delete_by_id(project_id, user)
+    asyncio.run(run())
+    session.execute.assert_called_once()
+    session.delete.assert_not_called()
+    session.commit.assert_not_called()
+
+def test_delete_by_id_success():
+    """delete_by_id deletes project if user is owner."""
+    session = make_session()
+    repo = make_repository(session)
+    project_id = 1
+    mock_project = ProjectModel(id=project_id, title="Test", repository_url="url", owner_id=42, created_at=DT, updated_at=DT)
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = mock_project
+    session.execute.return_value = mock_result
+    user = make_user(42)
+    async def run():
+        return await repo.delete_by_id(project_id, user)
+    result = asyncio.run(run())
+    assert result is True
+    session.delete.assert_called_once_with(mock_project)
+    session.commit.assert_called_once()
+
+def test_delete_by_repository_url_not_found():
+    """delete_by_repository_url returns False if project does not exist."""
+    session = make_session()
+    repo = make_repository(session)
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    session.execute.return_value = mock_result
+    user = make_user(42)
+    async def run():
+        return await repo.delete_by_repository_url("missing-url", user)
+    result = asyncio.run(run())
+    assert result is False
+    session.execute.assert_called_once()
+    session.delete.assert_not_called()
+    session.commit.assert_not_called()
+
+def test_delete_by_repository_url_forbidden():
+    """delete_by_repository_url raises ForbiddenError if user is not owner."""
+    session = make_session()
+    repo = make_repository(session)
+    url = "url"
+    mock_project = ProjectModel(id=1, title="Test", repository_url=url, owner_id=99, created_at=DT, updated_at=DT)
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = mock_project
+    session.execute.return_value = mock_result
+    user = make_user(42)
+    async def run():
+        with pytest.raises(ForbiddenError):
+            await repo.delete_by_repository_url(url, user)
+    asyncio.run(run())
+    session.execute.assert_called_once()
+    session.delete.assert_not_called()
+    session.commit.assert_not_called()
+
+def test_delete_by_repository_url_success():
+    """delete_by_repository_url deletes project if user is owner."""
+    session = make_session()
+    repo = make_repository(session)
+    url = "url"
+    mock_project = ProjectModel(id=1, title="Test", repository_url=url, owner_id=42, created_at=DT, updated_at=DT)
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = mock_project
+    session.execute.return_value = mock_result
+    user = make_user(42)
+    async def run():
+        return await repo.delete_by_repository_url(url, user)
+    result = asyncio.run(run())
+    assert result is True
+    session.delete.assert_called_once_with(mock_project)
+    session.commit.assert_called_once()

@@ -142,3 +142,47 @@ class SqlRepository(ProjectRepository):
         result = await self.session.execute(statement)
         project_models = result.scalars().all()
         return [Project.model_validate(model) for model in project_models]
+
+    async def delete_by_id(self, project_id: int, user: User) -> bool:
+        """
+        Deletes a project by its ID.
+
+        Args:
+            project_id: The ID of the project to delete.
+            user: The user attempting to delete the project.
+
+        Returns:
+            True if the project was deleted, False if not found.
+        """
+        statement = select(ProjectModel).where(ProjectModel.id == project_id)
+        result = await self.session.execute(statement)
+        project_model = result.scalar_one_or_none()
+        if project_model is None:
+            return False
+        if project_model.owner_id != user.id:
+            raise ForbiddenError(f"User with id {user.id} is not the owner of project with id {project_id}.")
+        await self.session.delete(project_model)
+        await self.session.commit()
+        return True
+    
+    async def delete_by_repository_url(self, repository_url: str, user: User) -> bool:
+        """
+        Deletes a project by its repository URL.
+
+        Args:
+            repository_url: The repository URL of the project to delete.
+            user: The user attempting to delete the project.
+
+        Returns:
+            True if the project was deleted, False if not found.
+        """
+        statement = select(ProjectModel).where(ProjectModel.repository_url == repository_url)
+        result = await self.session.execute(statement)
+        project_model = result.scalar_one_or_none()
+        if project_model is None:
+            return False
+        if project_model.owner_id != user.id:
+            raise ForbiddenError(f"User with id {user.id} is not the owner of project with repository URL {repository_url}.")
+        await self.session.delete(project_model)
+        await self.session.commit()
+        return True
