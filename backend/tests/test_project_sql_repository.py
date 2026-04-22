@@ -23,9 +23,7 @@ def _compiled_sql(statement) -> str:
         )
     )
 
-
 DT = datetime(2026, 1, 1, 0, 0, 0)
-
 
 def make_session() -> AsyncMock:
     """Create a fresh mock database session."""
@@ -49,7 +47,6 @@ def configure_refresh_with_db_defaults(session: AsyncMock) -> None:
         model.updated_at = DT
 
     session.refresh.side_effect = refresh_side_effect
-
 
 # ---------------------------------------------------------------------------
 # create
@@ -77,7 +74,6 @@ def test_create_project_success():
     session.commit.assert_called_once()
     session.refresh.assert_called_once()
 
-
 def test_create_project_commit_fails():
     """Test that a rollback is triggered when commit raises."""
     session = make_session()
@@ -102,7 +98,6 @@ def test_create_project_commit_fails():
     session.commit.assert_called_once()
     session.rollback.assert_called_once()
     session.refresh.assert_not_called()
-
 
 def test_create_project_with_minimal_data():
     """Test creating a project with only the required fields."""
@@ -129,7 +124,6 @@ def test_create_project_with_minimal_data():
     assert added_model.help_wanted is False
     assert added_model.owner_id == 42
 
-
 def test_create_project_passes_all_fields_to_model():
     """Test that all fields from ProjectCreate are forwarded to the db model."""
     session = make_session()
@@ -152,7 +146,6 @@ def test_create_project_passes_all_fields_to_model():
     assert added_model.title == "Full Project"
     assert added_model.description == "Full description."
     assert added_model.help_wanted is True
-
 
 def test_create_calls_add_before_commit():
     """Test that add is called before commit during creation."""

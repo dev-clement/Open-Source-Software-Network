@@ -84,3 +84,15 @@ class ProjectService(ABC):
             A list of projects where help_wanted is True.
         """
         ...
+    
+    @abstractmethod
+    async def delete_by_id(self, project_id: int, user: User) -> bool:
+        """Delete a project by primary key.
+
+        Args:
+            project_id: Database identifier of the project to delete
+            user: The user attempting to delete the project.
+        Returns:
+            True if the project was deleted, False if not found.
+        """
+        ...

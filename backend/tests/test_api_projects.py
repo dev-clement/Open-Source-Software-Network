@@ -1,30 +1,3 @@
-# ---------------------------------------------------------------------------
-# Authorization/ownership tests
-# ---------------------------------------------------------------------------
-
-def test_edit_project_returns_403_for_non_owner():
-    class NotOwner:
-        id = 999  # Not the owner
-        email = "notowner@example.com"
-        username = "notowner"
-
-    class Owner:
-        id = 42
-        email = "owner@example.com"
-        username = "owner"
-
-    # Fake service returns a project owned by Owner (id=42)
-    fake_service = FakeProjectService(project_to_return=_build_project(project_id=1, owner_id=42))
-
-    app = FastAPI()
-    app.include_router(projects_api.router)
-    app.dependency_overrides[projects_api.get_project_service] = lambda: fake_service
-    app.dependency_overrides[projects_api.get_current_user] = lambda: NotOwner()
-    client = TestClient(app, raise_server_exceptions=False)
-
-    response = client.put("/projects/edit/1", json={"title": "Should Fail"})
-    assert response.status_code == 403 or response.status_code == 404  # Accept 404 if service returns None for non-owner
-    # If you want strict 403, update your service/repo to raise HTTP 403 for non-owner
 import os
 from datetime import datetime
 from typing import List, Optional
@@ -43,9 +16,7 @@ os.environ.setdefault("JWT_EXPIRATION_MINUTES", "30")
 
 from app.projects import api as projects_api
 from app.projects.schemas import Project, ProjectCreate, ProjectUpdate
-from app.projects.exception import CreateProjectError
-from app.projects.exception import ProjectNotFoundError
-
+from app.projects.exception import CreateProjectError, ForbiddenError, ProjectNotFoundError
 
 NOW = datetime(2026, 4, 17, 10, 0, 0)
 
@@ -656,3 +627,66 @@ def test_list_help_wanted_projects_returns_422_when_limit_exceeds_maximum():
     response = client.get("/projects/help-wanted?limit=1001")
 
     assert response.status_code == 422
+# ---------------------------------------------------------------------------
+# DELETE endpoints: /projects/{project_id} and /projects/repository-url
+# ---------------------------------------------------------------------------
+
+def test_delete_project_by_id_returns_204_on_success():
+    class Service(FakeProjectService):
+        async def delete_by_id(self, project_id, user):
+            return True
+    fake_service = Service()
+    user = type("User", (), {"id": 42})()
+    client = _build_client(fake_service, user=user)
+    response = client.delete("/projects/1")
+    assert response.status_code == 204
+
+def test_delete_project_by_id_returns_404_on_not_found():
+    class Service(FakeProjectService):
+        async def delete_by_id(self, project_id, user):
+            return False
+    fake_service = Service()
+    user = type("User", (), {"id": 42})()
+    client = _build_client(fake_service, user=user)
+    response = client.delete("/projects/999")
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"].lower()
+
+def test_delete_project_by_id_returns_403_on_forbidden():
+    class Service(FakeProjectService):
+        async def delete_by_id(self, project_id, user):
+            raise ForbiddenError("forbidden")
+    fake_service = Service()
+    user = type("User", (), {"id": 42})()
+    client = _build_client(fake_service, user=user)
+    response = client.delete("/projects/1")
+    assert response.status_code == 403
+    assert "forbidden" in response.json()["detail"].lower()
+
+# ---------------------------------------------------------------------------
+# Authorization/ownership tests
+# ---------------------------------------------------------------------------
+
+def test_edit_project_returns_403_for_non_owner():
+    class NotOwner:
+        id = 999  # Not the owner
+        email = "notowner@example.com"
+        username = "notowner"
+
+    class Owner:
+        id = 42
+        email = "owner@example.com"
+        username = "owner"
+
+    # Fake service returns a project owned by Owner (id=42)
+    fake_service = FakeProjectService(project_to_return=_build_project(project_id=1, owner_id=42))
+
+    app = FastAPI()
+    app.include_router(projects_api.router)
+    app.dependency_overrides[projects_api.get_project_service] = lambda: fake_service
+    app.dependency_overrides[projects_api.get_current_user] = lambda: NotOwner()
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.put("/projects/edit/1", json={"title": "Should Fail"})
+    assert response.status_code == 403 or response.status_code == 404  # Accept 404 if service returns None for non-owner
+    # If you want strict 403, update your service/repo to raise HTTP 403 for non-owner

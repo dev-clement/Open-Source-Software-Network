@@ -98,3 +98,13 @@ class ProjectRepository(ABC):
             to ``True``.
         """
         ...
+    
+    @abstractmethod
+    async def delete_by_id(self, project_id: int, user: User) -> bool:
+        """Delete a project by primary key.
+
+        :param project_id: Database identifier of the project to delete.
+        :param user: The user attempting to delete the project.
+        :return: True if the project was deleted, False if not found.
+        """
+        ...

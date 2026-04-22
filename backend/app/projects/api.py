@@ -26,7 +26,6 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 
 _db_engine = DatabaseEngine(database_url=settings.db_url)
 
-
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     """Yield an async database session for project route dependencies."""
     async with _db_engine.async_session() as session:
@@ -201,3 +200,38 @@ async def edit_project(
         )
     except HTTPException as he:
         raise he
+
+@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_project_by_id(
+    project_id: int,
+    project_service: ProjectService = Depends(get_project_service),
+    user: User = Depends(get_current_user),
+):
+    """
+    Delete a project by its unique identifier.
+
+    Args:
+        project_id: Identifier of the project to delete.
+        project_service: Service responsible for deletion logic.
+        user: Authenticated user attempting the deletion.
+
+    Returns:
+        204 No Content on success.
+
+    Raises:
+        HTTPException: 404 if not found, 403 if forbidden.
+    """
+    try:
+        deleted = await project_service.delete_by_id(project_id=project_id, user=user)
+        if not deleted:
+            raise ProjectNotFoundError(project_id)
+    except ProjectNotFoundError as pnfe:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(pnfe),
+        )
+    except ForbiddenError as fe:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(fe),
+        )
