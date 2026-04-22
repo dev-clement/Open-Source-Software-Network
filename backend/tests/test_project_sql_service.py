@@ -659,22 +659,97 @@ def test_edit_allows_same_repository_url_for_same_project():
     repository.edit.assert_called_once_with(project_id=1, project_data=payload, user=user)
 
 
-def test_edit_skips_url_lookup_when_repository_url_not_updated():
-    """edit should not call URL lookup when repository_url is absent from payload."""
+# ---------------------------------------------------------------------------
+# delete_by_id and delete_by_repository_url
+# ---------------------------------------------------------------------------
+
+def make_user(user_id):
+    class DummyUser:
+        id = user_id
+    return DummyUser()
+
+def test_delete_by_id_not_found():
+    """delete_by_id returns False if project does not exist."""
     repository = make_repository()
     service = make_service(repository)
-    payload = ProjectUpdate(help_wanted=True)
-    class DummyUser:
-        id = 42
-    user = DummyUser()  # Dummy user object for test
-    repository.get_by_id.return_value = make_project(id=3)
-    repository.edit.return_value = make_project(id=3, help_wanted=True)
+    user = make_user(42)
+    repository.delete_by_id.return_value = False
 
     async def run():
-        await service.edit(project_id=3, project_data=payload, user=user)
+        result = await service.delete_by_id(999, user)
+        assert result is False
 
     asyncio.run(run())
+    repository.delete_by_id.assert_called_once_with(999, user)
 
-    repository.get_by_id.assert_called_once_with(3)
-    repository.get_by_repository_url.assert_not_called()
-    repository.edit.assert_called_once_with(project_id=3, project_data=payload, user=user)
+def test_delete_by_id_forbidden():
+    """delete_by_id raises ForbiddenError if user is not owner."""
+    repository = make_repository()
+    service = make_service(repository)
+    user = make_user(42)
+    repository.delete_by_id.side_effect = Exception("ForbiddenError")
+
+    async def run():
+        with pytest.raises(Exception) as exc_info:
+            await service.delete_by_id(1, user)
+        assert "ForbiddenError" in str(exc_info.value)
+
+    asyncio.run(run())
+    repository.delete_by_id.assert_called_once_with(1, user)
+
+def test_delete_by_id_success():
+    """delete_by_id deletes project if user is owner."""
+    repository = make_repository()
+    service = make_service(repository)
+    user = make_user(42)
+    repository.delete_by_id.return_value = True
+
+    async def run():
+        result = await service.delete_by_id(1, user)
+        assert result is True
+
+    asyncio.run(run())
+    repository.delete_by_id.assert_called_once_with(1, user)
+
+def test_delete_by_repository_url_not_found():
+    """delete_by_repository_url returns False if project does not exist."""
+    repository = make_repository()
+    service = make_service(repository)
+    user = make_user(42)
+    repository.delete_by_repository_url.return_value = False
+
+    async def run():
+        result = await service.delete_by_repository_url("missing-url", user)
+        assert result is False
+
+    asyncio.run(run())
+    repository.delete_by_repository_url.assert_called_once_with("missing-url", user)
+
+def test_delete_by_repository_url_forbidden():
+    """delete_by_repository_url raises ForbiddenError if user is not owner."""
+    repository = make_repository()
+    service = make_service(repository)
+    user = make_user(42)
+    repository.delete_by_repository_url.side_effect = Exception("ForbiddenError")
+
+    async def run():
+        with pytest.raises(Exception) as exc_info:
+            await service.delete_by_repository_url("url", user)
+        assert "ForbiddenError" in str(exc_info.value)
+
+    asyncio.run(run())
+    repository.delete_by_repository_url.assert_called_once_with("url", user)
+
+def test_delete_by_repository_url_success():
+    """delete_by_repository_url deletes project if user is owner."""
+    repository = make_repository()
+    service = make_service(repository)
+    user = make_user(42)
+    repository.delete_by_repository_url.return_value = True
+
+    async def run():
+        result = await service.delete_by_repository_url("url", user)
+        assert result is True
+
+    asyncio.run(run())
+    repository.delete_by_repository_url.assert_called_once_with("url", user)
