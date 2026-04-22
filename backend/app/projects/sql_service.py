@@ -113,3 +113,14 @@ class SQLProjectService(ProjectService):
             A list of projects where help_wanted is True.
         """
         return await self.repository.list_help_wanted(skip=skip, limit=limit)
+    
+    async def delete_by_id(self, project_id: int, user: User) -> bool:
+        """Delete a project by its unique identifier.
+
+        Args:
+            project_id: The unique identifier of the project to delete
+            user: The user attempting to delete the project.
+        Returns:
+            True if the project was deleted, False if no project with the given id exists.
+        """
+        return await self.repository.delete_by_id(project_id, user)

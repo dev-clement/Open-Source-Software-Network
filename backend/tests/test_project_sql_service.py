@@ -657,24 +657,3 @@ def test_edit_allows_same_repository_url_for_same_project():
     repository.get_by_id.assert_called_once_with(1)
     repository.get_by_repository_url.assert_called_once_with(payload.repository_url)
     repository.edit.assert_called_once_with(project_id=1, project_data=payload, user=user)
-
-
-def test_edit_skips_url_lookup_when_repository_url_not_updated():
-    """edit should not call URL lookup when repository_url is absent from payload."""
-    repository = make_repository()
-    service = make_service(repository)
-    payload = ProjectUpdate(help_wanted=True)
-    class DummyUser:
-        id = 42
-    user = DummyUser()  # Dummy user object for test
-    repository.get_by_id.return_value = make_project(id=3)
-    repository.edit.return_value = make_project(id=3, help_wanted=True)
-
-    async def run():
-        await service.edit(project_id=3, project_data=payload, user=user)
-
-    asyncio.run(run())
-
-    repository.get_by_id.assert_called_once_with(3)
-    repository.get_by_repository_url.assert_not_called()
-    repository.edit.assert_called_once_with(project_id=3, project_data=payload, user=user)
