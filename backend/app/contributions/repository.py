@@ -21,7 +21,20 @@ class ContributionRepository(ABC):
     """
 
     @abstractmethod
-    async def get_by_project(self, project_title: str) -> List[Contribution]:
+    async def get_by_id(self, contribution_id: int) -> Optional[Contribution]:
+        """
+        Retrieve a contribution by its unique identifier.
+
+        Args:
+            contribution_id (int): The ID of the contribution to retrieve.
+
+        Returns:
+            Optional[Contribution]: The contribution if found, otherwise None.
+        """
+        ...
+
+    @abstractmethod
+    async def get_by_project(self, project_id: str) -> List[Contribution]:
         """
         Retrieve all contributions associated with a project by its title.
 
@@ -58,20 +71,7 @@ class ContributionRepository(ABC):
             Contribution: The created contribution object.
         """
         ...
-    
-    @abstractmethod
-    async def get_by_id(self, contribution_id: int) -> Optional[Contribution]:
-        """
-        Retrieve a contribution by its unique identifier.
-
-        Args:
-            contribution_id (int): The ID of the contribution to retrieve.
-
-        Returns:
-            Optional[Contribution]: The contribution if found, otherwise None.
-        """
-        ...
-    
+        
     @abstractmethod
     async def list_by_user(self, user_id: int) -> List[Contribution]:
         """
