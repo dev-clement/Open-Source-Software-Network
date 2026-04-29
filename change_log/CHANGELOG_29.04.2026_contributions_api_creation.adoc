@@ -1,0 +1,17 @@
+= Changelog: Contributions API Creation
+:toc:
+:toc-placement!:
+
+toc::[]
+
+== 2026-04-29
+
+=== Added
+
+* **Implemented `apply_to_project` endpoint in `backend/app/contributions/api.py` to allow users to apply to a project.**
+  ** This endpoint assigns the project_id from the route to the contribution data and delegates the application logic to the contribution service.
+  ** Returns HTTP 400 with error details if the service raises an exception.
+* Centralized async DB session management in `backend/app/shared/db.py` and refactored API modules to use this shared dependency.
+* Added `get_contribution_service` dependency with FastAPI's `Depends` for testability and maintainability.
+* Added unit tests for `get_contribution_service` and `apply_to_project` (including error handling) in `backend/tests/test_contributions_api.py`.
+* Improved documentation with detailed docstrings for new API methods.

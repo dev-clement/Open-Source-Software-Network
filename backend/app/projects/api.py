@@ -4,13 +4,12 @@ Project API routes: CRUD operations for projects.
 All routes delegate to ProjectService for business logic.
 """
 
-from typing import AsyncGenerator
+
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.settings import settings
-from app.db.session import DatabaseEngine
+from app.shared.db import get_db_session
 from app.projects.schemas import Project, ProjectCreate, ProjectUpdate
 from app.projects.service import ProjectService
 from app.projects.sql_repository import SqlRepository
@@ -24,12 +23,7 @@ from app.auth.schemas import User
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
-_db_engine = DatabaseEngine(database_url=settings.db_url)
 
-async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
-    """Yield an async database session for project route dependencies."""
-    async with _db_engine.async_session() as session:
-        yield session
 
 
 def get_project_service(session: AsyncSession = Depends(get_db_session)) -> ProjectService:

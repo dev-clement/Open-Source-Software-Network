@@ -1,3 +1,4 @@
+from app.shared.db import get_db_session
 """
 Auth API routes: signup, login, logout.
 
