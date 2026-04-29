@@ -4,11 +4,12 @@ Unit tests for get_contribution_service dependency in contributions/api.py.
 import pytest
 from fastapi import Depends, HTTPException, status
 from app.contributions.api import apply_to_project, ContributionCreate, list_my_contributions
-from app.contributions.api import get_contribution_service
+from app.contributions.api import get_contribution_service, update_status
+from app.contributions.exception import UserNotFound, ProjectNotFound
+from app.domain.enums import ContributionStatus
 
 import types
 from app.auth.schemas import User
-from app.contributions.exception import UserNotFound
 import asyncio
 
 class DummySession:
@@ -119,3 +120,51 @@ async def test_list_my_contributions_raises_http_exception():
         await list_my_contributions(user, service)
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
     assert 'unexpected error' in str(exc_info.value.detail)
+
+# --- Tests for update_status endpoint ---
+
+class DummyServiceWithUpdate(DummyService):
+    async def update_status(self, user_id, project_id, new_status):
+        if self.raise_exc:
+            raise self.raise_exc
+        return f"updated:{user_id}:{project_id}:{new_status}"
+
+def test_update_status_project_id_none():
+    service = DummyServiceWithUpdate()
+    with pytest.raises(HTTPException) as exc_info:
+        # project_id is None
+        asyncio.run(update_status(None, 1, ContributionStatus.INTERESTED, service))
+    assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+    assert "Project ID is required." in str(exc_info.value.detail)
+
+def test_update_status_user_id_none():
+    service = DummyServiceWithUpdate()
+    with pytest.raises(HTTPException) as exc_info:
+        # user_id is None
+        asyncio.run(update_status(1, None, ContributionStatus.INTERESTED, service))
+    assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+    assert "User ID is required." in str(exc_info.value.detail)
+
+def test_update_status_project_not_found():
+    service = DummyServiceWithUpdate()
+    service.raise_exc = ProjectNotFound(42)
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(update_status(1, 42, ContributionStatus.INTERESTED, service))
+    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert "Project with id 42 does not exist." in str(exc_info.value.detail)
+
+def test_update_status_user_not_found():
+    service = DummyServiceWithUpdate()
+    service.raise_exc = UserNotFound(99)
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(update_status(1, 2, ContributionStatus.INTERESTED, service))
+    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert "User with id 99 does not exist." in str(exc_info.value.detail)
+
+def test_update_status_generic_exception():
+    service = DummyServiceWithUpdate()
+    service.raise_exc = Exception("fail")
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(update_status(1, 2, ContributionStatus.INTERESTED, service))
+    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert "fail" in str(exc_info.value.detail)

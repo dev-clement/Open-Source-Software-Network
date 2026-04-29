@@ -27,3 +27,10 @@ toc::[]
 
 * Added unit tests for the `/me` endpoint (`list_my_contributions`) in `backend/tests/test_contributions_api.py`:
   ** Tests for valid user, invalid user, and HTTP 400 error handling.
+
+* **Implemented `update_status` endpoint in `backend/app/contributions/api.py` to allow updating a user's contribution status for a project.**
+  ** Handles ProjectNotFound and UserNotFound exceptions with proper HTTP error codes and messages.
+  ** Returns HTTP 404 if project_id or user_id is not provided.
+  ** Returns HTTP 400 for other service exceptions or validation errors.
+  ** Added comprehensive unit tests for all error cases and parameter validation in `backend/tests/test_contributions_api.py`.
+  ** Added detailed docstring for endpoint usage and error handling.
