@@ -3,8 +3,13 @@ Unit tests for get_contribution_service dependency in contributions/api.py.
 """
 import pytest
 from fastapi import Depends, HTTPException, status
-from app.contributions.api import apply_to_project, ContributionCreate
+from app.contributions.api import apply_to_project, ContributionCreate, list_my_contributions
 from app.contributions.api import get_contribution_service
+
+import types
+from app.auth.schemas import User
+from app.contributions.exception import UserNotFound
+import asyncio
 
 class DummySession:
     pass
@@ -14,12 +19,22 @@ class DummyService:
         self.called = False
         self.args = None
         self.raise_exc = None
+        self.list_by_user_called = False
+        self.list_by_user_args = None
+        self.list_by_user_return = None
     async def apply_to_project(self, contribution_data):
         self.called = True
         self.args = contribution_data
         if self.raise_exc:
             raise self.raise_exc
         return 'contribution_result'
+
+    async def list_by_user(self, user_id):
+        self.list_by_user_called = True
+        self.list_by_user_args = user_id
+        if self.raise_exc:
+            raise self.raise_exc
+        return self.list_by_user_return
 
 @pytest.mark.asyncio
 async def test_apply_to_project_calls_service():
@@ -68,3 +83,39 @@ def test_get_contribution_service_returns_service(monkeypatch):
     assert result == 'service_instance'
     assert created['session'] is dummy_session
     assert created['repo'] == 'repo_instance'
+
+
+# --- Tests for /me endpoint (list_my_contributions) ---
+
+@pytest.mark.asyncio
+async def test_list_my_contributions_valid_user():
+    service = DummyService()
+    user = User(id=123, username='bob', email='bob@example.com', created_at='2024-01-01T00:00:00', updated_at='2024-01-01T00:00:00')
+    expected_contributions = ['contrib1', 'contrib2']
+    service.list_by_user_return = expected_contributions
+    result = await list_my_contributions(user, service)
+    assert service.list_by_user_called
+    assert service.list_by_user_args == user.id
+    assert result == expected_contributions
+
+
+# Test for UserNotFound exception handling (should return 404)
+@pytest.mark.asyncio
+async def test_list_my_contributions_user_not_found():
+    service = DummyService()
+    user = User(id=999, username='ghost', email='ghost@example.com', created_at='2024-01-01T00:00:00', updated_at='2024-01-01T00:00:00')
+    service.raise_exc = UserNotFound(user.id)
+    with pytest.raises(HTTPException) as exc_info:
+        await list_my_contributions(user, service)
+    assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+    assert f"User with id {user.id} does not exist." in str(exc_info.value.detail)
+
+@pytest.mark.asyncio
+async def test_list_my_contributions_raises_http_exception():
+    service = DummyService()
+    user = User(id=1, username='alice', email='alice@example.com', created_at='2024-01-01T00:00:00', updated_at='2024-01-01T00:00:00')
+    service.raise_exc = Exception('unexpected error')
+    with pytest.raises(HTTPException) as exc_info:
+        await list_my_contributions(user, service)
+    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert 'unexpected error' in str(exc_info.value.detail)

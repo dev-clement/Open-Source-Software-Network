@@ -15,3 +15,15 @@ toc::[]
 * Added `get_contribution_service` dependency with FastAPI's `Depends` for testability and maintainability.
 * Added unit tests for `get_contribution_service` and `apply_to_project` (including error handling) in `backend/tests/test_contributions_api.py`.
 * Improved documentation with detailed docstrings for new API methods.
+
+* **Implemented `list_my_contributions` endpoint in `backend/app/contributions/api.py` to allow users to retrieve their own contributions.**
+  ** This endpoint uses authentication to identify the user and delegates to the contribution service to fetch all contributions for that user.
+  ** Returns HTTP 400 with error details if the service raises an exception.
+  ** Added a detailed Python docstring explaining the endpoint's usage, arguments, and error handling.
+
+* **Implemented `list_project_contributors` endpoint in `backend/app/contributions/api.py` to list all contributors for a given project.**
+  ** This endpoint delegates to the contribution service to fetch all contributors for the specified project.
+  ** Returns HTTP 400 with error details if the service raises an exception.
+
+* Added unit tests for the `/me` endpoint (`list_my_contributions`) in `backend/tests/test_contributions_api.py`:
+  ** Tests for valid user, invalid user, and HTTP 400 error handling.
