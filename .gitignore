@@ -9,7 +9,8 @@
 .idea/
 *.swp
 __pycache__/
-
+node_modules/
+package-lock.json
 
 # --- Environment & Secrets (CRITICAL) ---
 # Never commit your credentials or DB passwords!
@@ -37,7 +38,7 @@ backend/build/
 # If you use Pixi for backend management
 backend/.pixi/
 
-# --- Frontend (Angular) ---
+# --- Frontend (NextJS) ---
 frontend/node_modules/
 frontend/dist/
 frontend/.angular/

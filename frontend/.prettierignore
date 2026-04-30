@@ -1,0 +1,6 @@
+# Prettier
+.prettierrc
+node_modules/
+.next/
+out/
+coverage/
