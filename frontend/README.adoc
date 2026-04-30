@@ -1,0 +1,70 @@
+= OSSN Frontend
+
+
+This project is the frontend for the OSSN application, built with Next.js (React).
+
+== Overview
+
+This frontend is an integral part of the OSSN application. It interacts extensively with the backend, which is implemented using FastAPI (Python). All operations related to projects, contributions, and users are handled through backend API endpoints. The frontend acts as the user interface, sending and receiving data to and from the backend to provide a seamless user experience.
+
+== Technologies Used
+
+- **Next.js**: A React-based framework that enables both client-side and server-side rendering, as well as file-based routing.
+- **React**: For building interactive user interfaces and components.
+- **FastAPI (Backend)**: The backend is built with FastAPI, providing RESTful endpoints for all core features (projects, contributions, users, authentication, etc.).
+
+== Next.js Features
+
+- **Routing**: Uses Next.js's file-based routing system to organize the application into pages (e.g., registration, login, project management, etc.).
+- **Server-Side Rendering (SSR)**: Many pages leverage SSR, which means that HTML is generated on the server for each request. This improves SEO, performance, and ensures that users see content faster, especially on initial page load.
+
+=== What is SSR?
+
+Server-Side Rendering (SSR) is a technique where the server generates the HTML for a page on each request, rather than relying solely on the browser (client-side rendering). In Next.js, SSR allows pages to be rendered with up-to-date data from the backend before being sent to the user's browser. This results in:
+
+- Faster initial page loads
+- Better SEO (search engines can index content more easily)
+- Improved user experience, especially for dynamic or data-driven pages
+
+== Application Structure
+
+The frontend is split into several pages, each corresponding to a major feature:
+
+- User registration and authentication
+- Project management (CRUD)
+- Contribution management (CRUD)
+- User management (CRUD)
+
+Each page is implemented as a separate file or directory under `pages/`, following Next.js conventions.
+
+== Getting Started
+
+1. Install dependencies:
+
+    npm install
+
+2. Run the development server:
+
+    npm run dev
+
+3. Open your browser and navigate to http://localhost:3000
+
+== Project Structure
+
+- `pages/` — Main application pages (Next.js routing)
+- `components/` — Reusable UI components
+- `public/` — Static assets
+- `styles/` — CSS/SCSS files
+
+== Scripts
+
+- `npm run dev` — Start development server
+- `npm run build` — Build for production
+- `npm start` — Start production server
+
+== Notes
+
+- The frontend communicates with the backend API for all data operations.
+- Environment variables should be stored in `.env` files (git-ignored).
+- Follow the coding conventions and structure for maintainability.
+- Contributions are welcome!
