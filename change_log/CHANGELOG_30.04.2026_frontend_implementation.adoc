@@ -1,0 +1,23 @@
+= Changelog: Frontend Implementation Start
+:toc:
+:toc-placement!:
+
+toc::[]
+
+== 2026-04-30
+
+=== Added
+
+* **Initialized the frontend application structure for OSSN.**
+  ** Set up Next.js as the frontend framework and created the initial folder structure.
+  ** Added a README.adoc with project overview, architecture, and setup instructions.
+* **Configured Prettier for code formatting.**
+  ** Added .prettierrc and .prettierignore files.
+  ** Configured VS Code settings for format on save.
+* **Installed and set up Tailwind CSS for utility-first styling.**
+  ** Integrated Tailwind CSS with the Next.js project and updated global styles.
+  ** Cleaned up globals.css and removed unsupported @theme rule.
+* **Switched to Yarn for dependency management.**
+  ** Removed package-lock.json and ensured only yarn.lock is used.
+  ** Updated .gitignore to exclude package-lock.json and other build artifacts.
+* **Documented all configuration and setup steps in the changelog.**
