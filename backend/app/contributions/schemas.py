@@ -9,8 +9,8 @@ MAX_BIGINT = 9_223_372_036_854_775_807
 BigIntId = Annotated[int, Field(strict=True, ge=1, le=MAX_BIGINT)]
 
 class ContributionBase(BaseModel):
-    fk_user_id: BigIntId
-    fk_project_id: BigIntId
+    user_id: BigIntId
+    project_id: BigIntId
     status: ContributionStatus = ContributionStatus.INTERESTED
 
 
