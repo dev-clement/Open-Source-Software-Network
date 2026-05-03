@@ -1,4 +1,3 @@
-import React from 'react';
 import { Squares2X2Icon, UserCircleIcon } from '@heroicons/react/24/solid';
 
 interface TopHeaderLayoutProps {

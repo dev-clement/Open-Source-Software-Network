@@ -1,4 +1,4 @@
-import React from "react";
+import type * as React from "react";
 import TopHeaderLayout from "@layouts/TopHeaderLayout";
 import LeftDrawerLayout from "@layouts/LeftDrawerLayout";
 import RightDrawerLayout from "@layouts/RightDrawerLayout";
