@@ -19,7 +19,14 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@layouts/*": ["./components/layout/*"],
+      "@auth/*": ["./components/auth/*"],
+      "@contributions/*": ["./components/contributions/*"],
+      "@projects/*": ["./components/projects/*"],
+      "@project/*": ["./components/project/*"],
+      "@shared/*": ["./components/shared/*"],
+      "@users/*": ["./components/users/*"],
     }
   },
   "include": [

@@ -11,6 +11,7 @@
 __pycache__/
 node_modules/
 package-lock.json
+*.code-workspace
 
 # --- Environment & Secrets (CRITICAL) ---
 # Never commit your credentials or DB passwords!

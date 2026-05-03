@@ -17,11 +17,7 @@ export const metadata: Metadata = {
   description: "Open Source Software Network to contribute and collaborate on open source projects.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+const RootLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <html
       lang="en"
@@ -31,3 +27,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+export default RootLayout;

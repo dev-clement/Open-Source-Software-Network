@@ -16,6 +16,7 @@ yarn.lock
 
 # next.js
 /.next/
+/.vscode/
 /out/
 
 # production
