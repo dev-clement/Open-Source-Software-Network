@@ -5,11 +5,7 @@ import {
   ArrowRightEndOnRectangleIcon,
 } from '@heroicons/react/24/outline';
 
-const AuthLanding = () => {
-  const handleLogin = () => {
-    alert('Login functionality is not implemented yet.');
-  };
-
+const AuthLanding = ({ onLoginClick }: { onLoginClick: () => void }) => {
   return (
     <div className="flex flex-col items-center justify-center h-full">
       <div className="bg-gray-900 rounded-xl shadow-lg p-10 flex flex-col items-center">
@@ -19,7 +15,7 @@ const AuthLanding = () => {
         <div className="flex gap-6">
           <button
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition cursor-pointer"
-            onClick={handleLogin}
+            onClick={onLoginClick}
           >
             <ArrowRightEndOnRectangleIcon className="h-6 w-6" />
             Login
