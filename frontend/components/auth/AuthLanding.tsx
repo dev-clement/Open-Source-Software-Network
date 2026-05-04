@@ -18,13 +18,13 @@ const AuthLanding = () => {
         </h1>
         <div className="flex gap-6">
           <button
-            className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
+            className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition cursor-pointer"
             onClick={handleLogin}
           >
             <ArrowRightEndOnRectangleIcon className="h-6 w-6" />
             Login
           </button>
-          <button className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition">
+          <button className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition cursor-pointer">
             <UserIcon className="h-6 w-6" />
             Sign Up
           </button>
