@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import AuthLanding from '@authlanding/AuthLanding';
 import DashboardLayout from '@layouts/DashboardLayout';
-import LoginForm from '@/components/auth/LoginForm';
+import LoginForm from '@auth/Login/LoginForm';
 
 const Home: React.FC = () => {
   const [showLoginForm, setShowLoginForm] = useState(false);

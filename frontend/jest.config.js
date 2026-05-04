@@ -9,6 +9,12 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
-    // Add more aliases if needed
+    '^@layouts/(.*)$': '<rootDir>/components/layout/$1',
+    '^@auth/(.*)$': '<rootDir>/components/auth/$1',
+    '^@authlanding/(.*)$': '<rootDir>/components/auth/AuthLanding/$1',
+    '^@contributions/(.*)$': '<rootDir>/components/contributions/$1',
+    '^@project/(.*)$': '<rootDir>/components/project/$1',
+    '^@shared/(.*)$': '<rootDir>/components/shared/$1',
+    '^@users/(.*)$': '<rootDir>/components/users/$1',
   },
 };

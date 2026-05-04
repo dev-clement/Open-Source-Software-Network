@@ -31,13 +31,21 @@ jest.mock('@shared/NotificationBadge', () => (props: { message: string }) => (
   <div data-testid="notification-badge">{props.message}</div>
 ));
 
-jest.mock('@shared/InputWithIcon', () => (props: {
-  name: string;
-  value: string;
-  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-}) => (
-  <input data-testid={props.name} value={props.value} onChange={props.onChange} />
-));
+jest.mock(
+  '@shared/InputWithIcon',
+  () =>
+    (props: {
+      name: string;
+      value: string;
+      onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    }) => (
+      <input
+        data-testid={props.name}
+        value={props.value}
+        onChange={props.onChange}
+      />
+    )
+);
 
 describe('LoginForm', () => {
   beforeEach(() => {
@@ -80,7 +88,9 @@ describe('LoginForm', () => {
     }
 
     await waitFor(() => {
-      expect(screen.getByTestId('notification-badge')).toHaveTextContent('Email required');
+      expect(screen.getByTestId('notification-badge')).toHaveTextContent(
+        'Email required'
+      );
     });
     expect(loginMock).not.toHaveBeenCalled();
   });
