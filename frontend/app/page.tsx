@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import AuthLanding from '@/components/auth/AuthLanding';
+import AuthLanding from '@authlanding/AuthLanding';
 import DashboardLayout from '@layouts/DashboardLayout';
 import LoginForm from '@/components/auth/LoginForm';
 

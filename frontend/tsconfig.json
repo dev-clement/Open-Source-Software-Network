@@ -23,6 +23,7 @@
       "@/*": ["./*"],
       "@layouts/*": ["./components/layout/*"],
       "@auth/*": ["./components/auth/*"],
+      "@authlanding/*": ["./components/auth/AuthLanding/*"],
       "@contributions/*": ["./components/contributions/*"],
       "@project/*": ["./components/project/*"],
       "@shared/*": ["./components/shared/*"],
