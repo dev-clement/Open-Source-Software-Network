@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline';
+import {
+  ArrowLeftIcon,
+  EnvelopeIcon,
+  LockClosedIcon,
+} from '@heroicons/react/24/outline';
 import { useLogin } from '@auth/useLogin';
 import { useLoginForm } from '@auth/useLoginForm';
 import NotificationBadge from '@shared/NotificationBadge';
@@ -10,7 +14,11 @@ interface LoginStatus {
   message: string;
 }
 
-const LoginForm: React.FC = () => {
+interface LoginFormProps {
+  onBackClick?: () => void;
+}
+
+const LoginForm: React.FC<LoginFormProps> = ({ onBackClick }) => {
   const [loginStatus, setLoginStatus] = useState<null | LoginStatus>(null);
   const [showBadge, setShowBadge] = useState(false);
 
@@ -59,7 +67,20 @@ const LoginForm: React.FC = () => {
 
   return (
     <div className="w-full flex flex-col items-center justify-center gap-6">
-      <h2 className="text-2xl font-bold mb-4">Login to OSSN</h2>
+      <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold">
+        <button
+          type="button"
+          aria-label="Back to authentication landing"
+          className="group cursor-pointer rounded-full p-1 text-gray-500 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700"
+          onClick={onBackClick}
+        >
+          <ArrowLeftIcon
+            aria-hidden="true"
+            className="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:-translate-x-0.5"
+          />
+        </button>
+        Login to OSSN
+      </h2>
       {loginStatus && (
         <NotificationBadge
           type={loginStatus.type}

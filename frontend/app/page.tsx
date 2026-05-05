@@ -13,7 +13,7 @@ const Home: React.FC = () => {
         <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
           {/* Conditionally render AuthLanding or LoginForm */}
           {showLoginForm ? (
-            <LoginForm />
+            <LoginForm onBackClick={() => setShowLoginForm(false)} />
           ) : (
             <AuthLanding onLoginClick={() => setShowLoginForm(true)} />
           )}

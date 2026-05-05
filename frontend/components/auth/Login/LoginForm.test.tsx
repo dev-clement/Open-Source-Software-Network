@@ -65,7 +65,22 @@ describe('LoginForm', () => {
 
     expect(screen.getByTestId('email')).toBeInTheDocument();
     expect(screen.getByTestId('password')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /back to authentication landing/i })
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
+  });
+
+  it('calls the back handler when the back button is clicked', () => {
+    const handleBackClick = jest.fn();
+
+    render(<LoginForm onBackClick={handleBackClick} />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /back to authentication landing/i })
+    );
+
+    expect(handleBackClick).toHaveBeenCalledTimes(1);
   });
 
   it('disables login button when fields are empty', () => {
