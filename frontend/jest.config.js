@@ -10,7 +10,7 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '^@layouts/(.*)$': '<rootDir>/components/layout/$1',
-    '^@auth/(.*)$': '<rootDir>/components/auth/$1',
+    '^@auth/(.*)$': '<rootDir>/hooks/auth/$1',
     '^@authlanding/(.*)$': '<rootDir>/components/auth/AuthLanding/$1',
     '^@contributions/(.*)$': '<rootDir>/components/contributions/$1',
     '^@project/(.*)$': '<rootDir>/components/project/$1',
