@@ -50,6 +50,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER updated_user_modtime BEFORE UPDATE ON "user" FOR EACH ROW EXECUTE update_updated_at_column();
-CREATE TRIGGER updated_projects_modtime BEFORE UPDATE ON "projects" FOR EACH ROW EXECUTE update_updated_at_column();
-CREATE TRIGGER updated_contributions_modtime BEFORE UPDATE ON "contributions" FOR EACH ROW EXECUTE update_updated_at_column();
+CREATE TRIGGER updated_user_modtime BEFORE UPDATE ON "user" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER updated_projects_modtime BEFORE UPDATE ON "projects" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER updated_contributions_modtime BEFORE UPDATE ON "contributions" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Seed a local user for development login.
+INSERT INTO "user" (username, email, password)
+VALUES (
+    'root',
+    'user@email.com',
+    'pbkdf2_sha256$390000$00112233445566778899aabbccddeeff$9ba32628e6be908d57cd30f1359b68ab0a9891f72a49afcd40645101b208a951'
+)
+ON CONFLICT (email) DO UPDATE
+SET
+    username = EXCLUDED.username,
+    password = EXCLUDED.password,
+    updated_at = CURRENT_TIMESTAMP;
