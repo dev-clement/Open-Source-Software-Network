@@ -1,7 +1,16 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
+
+const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:8000';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  async rewrites() {
+    return [
+      {
+        source: '/api/auth/:path*',
+        destination: `${backendUrl}/auth/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

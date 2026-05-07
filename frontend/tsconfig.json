@@ -22,9 +22,10 @@
     "paths": {
       "@/*": ["./*"],
       "@layouts/*": ["./components/layout/*"],
-      "@auth/*": ["./components/auth/*"],
+      "@auth/*": ["./hooks/auth/*"],
+      "@login/*": ["./components/auth/Login/*"],
+      "@authlanding/*": ["./components/auth/AuthLanding/*"],
       "@contributions/*": ["./components/contributions/*"],
-      "@projects/*": ["./components/projects/*"],
       "@project/*": ["./components/project/*"],
       "@shared/*": ["./components/shared/*"],
       "@users/*": ["./components/users/*"]
